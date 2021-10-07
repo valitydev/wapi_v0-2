@@ -66,11 +66,11 @@
 -define(APP, wapi).
 
 -spec handle_request(tag(), operation_id(), req_data(), swagger_context(), opts()) -> request_result().
-handle_request(Tag, OperationID, Req, SwagContext = #{auth_context := AuthContext}, Opts) ->
+handle_request(Tag, OperationID, Req, SwagContext, Opts) ->
     #{'X-Request-Deadline' := Header} = Req,
     case wapi_utils:parse_deadline(Header) of
         {ok, Deadline} ->
-            WoodyContext = attach_deadline(Deadline, create_woody_context(Tag, Req, AuthContext, Opts)),
+            WoodyContext = attach_deadline(Deadline, create_woody_context(Tag, Req, Opts)),
             process_request(Tag, OperationID, Req, SwagContext, Opts, WoodyContext);
         _ ->
             _ = logger:warning("Operation ~p failed due to invalid deadline header ~p", [OperationID, Header]),
@@ -134,8 +134,8 @@ respond_if_forbidden(allowed, _Response) ->
 get_handler(wallet) -> wapi_wallet_handler;
 get_handler(payres) -> wapi_payres_handler.
 
--spec create_woody_context(tag(), req_data(), wapi_auth:context(), opts()) -> woody_context:ctx().
-create_woody_context(Tag, #{'X-Request-ID' := RequestID}, _AuthContext, _Opts) ->
+-spec create_woody_context(tag(), req_data(), opts()) -> woody_context:ctx().
+create_woody_context(Tag, #{'X-Request-ID' := RequestID}, _Opts) ->
     RpcID = #{trace_id := TraceID} = woody_context:new_rpc_id(genlib:to_binary(RequestID)),
     ok = scoper:add_meta(#{request_id => RequestID, trace_id => TraceID}),
     _ = logger:debug("Created TraceID for the request"),
