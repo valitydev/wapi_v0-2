@@ -10,7 +10,9 @@
 
 -define(CTX_ENTITY(ID), #bctx_v1_Entity{id = ID}).
 
--define(CTX_WAPI(Op), #bctx_v1_ContextWalletAPI{op = Op}).
+-define(CTX_WAPI(Op, Grants), #bctx_v1_ContextWalletAPI{op = Op, grants = Grants}).
+
+-define(CTX_WAPI(Op), ?CTX_WAPI(Op, undefined)).
 
 -define(CTX_WAPI_OP(ID), #bctx_v1_WalletAPIOperation{id = ID}).
 
@@ -42,6 +44,22 @@
 -define(CTX_W2W_TRANSFER_OP(ID, W2WTransferID), #bctx_v1_WalletAPIOperation{
     id = ID,
     w2w_transfer = W2WTransferID
+}).
+
+-define(CTX_WAPI_GRANT_DESTINATION(DestinaionID, ExpiresOn), #bctx_v1_WalletGrant{
+    destination = DestinaionID,
+    expires_on = ExpiresOn
+}).
+
+-define(CTX_WAPI_GRANT_WALLET(WalletID, Body, ExpiresOn), #bctx_v1_WalletGrant{
+    wallet = WalletID,
+    body = Body,
+    expires_on = ExpiresOn
+}).
+
+-define(CTX_CASH(Amount, Currency), #bouncer_base_Cash{
+    amount = Amount,
+    currency = Currency
 }).
 
 -define(assertContextMatches(Expect), fun(Context) ->

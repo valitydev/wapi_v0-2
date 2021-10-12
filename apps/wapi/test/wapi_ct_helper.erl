@@ -210,7 +210,7 @@ start_mocked_service_sup(Module) ->
 
 -spec stop_mocked_service_sup(pid()) -> _.
 stop_mocked_service_sup(SupPid) ->
-    exit(SupPid, shutdown).
+    proc_lib:stop(SupPid, shutdown, 1000).
 
 -spec mock_services(_, _) -> _.
 mock_services(Services, SupOrConfig) ->
@@ -238,19 +238,17 @@ mock_services_(Services, Config) when is_list(Config) ->
 mock_services_(Services, SupPid) when is_pid(SupPid) ->
     Name = lists:map(fun get_service_name/1, Services),
 
-    Port = get_random_port(),
     {ok, IP} = inet:parse_address(?WAPI_IP),
-    ChildSpec = woody_server:child_spec(
-        {dummy, Name},
-        #{
-            ip => IP,
-            port => Port,
-            event_handler => scoper_woody_event_handler,
-            handlers => lists:map(fun mock_service_handler/1, Services)
-        }
-    ),
-
+    ServerID = {dummy, Name},
+    WoodyOpts = #{
+        ip => IP,
+        port => 0,
+        event_handler => scoper_woody_event_handler,
+        handlers => lists:map(fun mock_service_handler/1, Services)
+    },
+    ChildSpec = woody_server:child_spec(ServerID, WoodyOpts),
     {ok, _} = supervisor:start_child(SupPid, ChildSpec),
+    {_IP, Port} = woody_server:get_addr(ServerID, WoodyOpts),
 
     lists:foldl(
         fun(Service, Acc) ->
@@ -293,10 +291,6 @@ mock_service_handler({ServiceName, WoodyService, Fun}) ->
 
 mock_service_handler(ServiceName, WoodyService, Fun) ->
     {make_path(ServiceName), {WoodyService, {wapi_dummy_service, #{function => Fun}}}}.
-
-% TODO not so failproof, ideally we need to bind socket first and then give to a ranch listener
-get_random_port() ->
-    rand:uniform(32768) + 32767.
 
 make_url(ServiceName, Port) ->
     iolist_to_binary(["http://", ?WAPI_HOST_NAME, ":", integer_to_list(Port), make_path(ServiceName)]).

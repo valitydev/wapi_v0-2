@@ -106,6 +106,9 @@ process_request(Tag, OperationID, Req, SwagContext0, Opts, WoodyContext) ->
         throw:{token_auth_failed, Reason} ->
             _ = logger:info("API Key authorization failed for ~p due to ~p", [OperationID, Reason]),
             wapi_handler_utils:reply_ok(401);
+        throw:{grant_verification_failed, Reason} ->
+            _ = logger:info("Grant token verification failed for ~p due to ~p", [OperationID, Reason]),
+            wapi_handler_utils:reply_ok(401);
         throw:{?request_result, Result} ->
             Result;
         error:{woody_error, {Source, Class, Details}} ->

@@ -532,8 +532,12 @@ prepare(
     end,
     Process = fun() ->
         respond_if_any_undefined_in_auth_context(AuthContext, wapi_handler_utils:reply_ok(404)),
-        case wapi_backend_utils:issue_grant_token({wallets, WalletId, Asset}, Expiration, Context) of
-            {ok, Token} ->
+        case check_grant_expiration(Expiration) of
+            ok ->
+                Token = wapi_tokens_legacy:issue_grant(
+                    wapi_handler_utils:get_owner(Context),
+                    {wallet, build_wallet_grant(WalletId, Asset, Expiration)}
+                ),
                 wapi_handler_utils:reply_ok(201, #{
                     <<"token">> => Token,
                     <<"validUntil">> => Expiration,
@@ -698,8 +702,12 @@ prepare(
     end,
     Process = fun() ->
         respond_if_any_undefined_in_auth_context(AuthContext, wapi_handler_utils:reply_ok(404)),
-        case issue_grant_token({destinations, DestinationId}, Expiration, Context) of
-            {ok, Token} ->
+        case check_grant_expiration(Expiration) of
+            ok ->
+                Token = wapi_tokens_legacy:issue_grant(
+                    wapi_handler_utils:get_owner(Context),
+                    {destination, build_destination_grant(DestinationId, Expiration)}
+                ),
                 wapi_handler_utils:reply_ok(201, #{
                     <<"token">> => Token,
                     <<"validUntil">> => Expiration
@@ -725,8 +733,13 @@ prepare(OperationID = 'CreateQuote', Req = #{'WithdrawalQuoteParams' := Params},
         Context
     ),
     Authorize = fun() ->
+        OpContext = #{id => OperationID},
+        Grants = build_grants_from_tokens(#{
+            wallet => maps:get(<<"walletGrant">>, Params, undefined),
+            destination => maps:get(<<"destinationGrant">>, Params, undefined)
+        }),
         Prototypes = [
-            {operation, build_prototype_for(operation, #{id => OperationID}, AuthContext)},
+            {operation, build_prototype_for(operation, attach_operation_grants(Grants, OpContext), AuthContext)},
             {wallet, build_prototype_for(wallet, [], AuthContext)}
         ],
         Resolution = wapi_auth:authorize_operation(Prototypes, Context, Req),
@@ -790,8 +803,13 @@ prepare(OperationID = 'CreateWithdrawal', Req = #{'WithdrawalParameters' := Para
         Context
     ),
     Authorize = fun() ->
+        OpContext = #{id => OperationID},
+        Grants = build_grants_from_tokens(#{
+            wallet => maps:get(<<"walletGrant">>, Params, undefined),
+            destination => maps:get(<<"destinationGrant">>, Params, undefined)
+        }),
         Prototypes = [
-            {operation, build_prototype_for(operation, #{id => OperationID}, AuthContext)},
+            {operation, build_prototype_for(operation, attach_operation_grants(Grants, OpContext), AuthContext)},
             {wallet, build_prototype_for(wallet, [], AuthContext)}
         ],
         Resolution = wapi_auth:authorize_operation(Prototypes, Context, Req),
@@ -1536,24 +1554,6 @@ get_location(OperationId, Params, Opts) ->
     #{path := PathSpec} = swag_server_wallet_router:get_operation(OperationId),
     wapi_handler_utils:get_location(PathSpec, Params, Opts).
 
-issue_grant_token(TokenSpec, Expiration, Context) ->
-    case get_expiration_deadline(Expiration) of
-        {ok, Deadline} ->
-            {ok, wapi_auth:issue_access_token(wapi_handler_utils:get_owner(Context), TokenSpec, Deadline)};
-        Error = {error, _} ->
-            Error
-    end.
-
-get_expiration_deadline(Expiration) ->
-    {DateTime, MilliSec} = woody_deadline:from_binary(wapi_utils:to_universal_time(Expiration)),
-    Deadline = genlib_time:daytime_to_unixtime(DateTime) + MilliSec div 1000,
-    case genlib_time:unow() - Deadline < 0 of
-        true ->
-            {ok, Deadline};
-        false ->
-            {error, expired}
-    end.
-
 build_auth_context([], Acc, _Context) ->
     Acc;
 build_auth_context([undefined | T], Acc, Context) ->
@@ -1639,6 +1639,65 @@ build_prototype_for(wallet, Entities, AuthContext) ->
         Entities,
         AuthContext
     ).
+
+%%
+
+build_grants_from_tokens(GrantTokens) ->
+    maps:fold(
+        fun
+            (_Resource, undefined, Acc) ->
+                Acc;
+            (Resource, Token, Acc) ->
+                [verify_grant_token(Resource, Token) | Acc]
+        end,
+        [],
+        GrantTokens
+    ).
+
+attach_operation_grants([], OpContext) ->
+    OpContext;
+attach_operation_grants(Grants, OpContext) ->
+    OpContext#{grants => Grants}.
+
+verify_grant_token(Resource, Token) ->
+    try
+        wapi_tokens_legacy:verify_grant(Resource, Token)
+    catch
+        throw:Reason ->
+            throw({grant_verification_failed, Reason})
+    end.
+
+%%
+
+check_grant_expiration(Expiration) ->
+    Deadline = genlib_rfc3339:parse(Expiration, second),
+    case genlib_time:unow() - Deadline < 0 of
+        true ->
+            ok;
+        false ->
+            {error, expired}
+    end.
+
+build_destination_grant(DestinationId, Expiration) ->
+    #{
+        destination => DestinationId,
+        expires_on => Expiration
+    }.
+
+build_wallet_grant(WalletId, Asset, Expiration) ->
+    #{
+        wallet => WalletId,
+        body => build_wallet_grant_asset(Asset),
+        expires_on => Expiration
+    }.
+
+build_wallet_grant_asset(Asset) ->
+    #{
+        amount => integer_to_binary(maps:get(<<"amount">>, Asset)),
+        currency => maps:get(<<"currency">>, Asset)
+    }.
+
+%%
 
 respond_if_any_undefined_in_auth_context(AuthContext, Respond) ->
     case
