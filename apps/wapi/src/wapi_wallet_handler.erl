@@ -816,7 +816,8 @@ prepare(OperationID = 'CreateWithdrawal', Req = #{'WithdrawalParameters' := Para
         {ok, Resolution}
     end,
     Process = fun() ->
-        respond_if_any_undefined_in_auth_context(AuthContext, wapi_handler_utils:reply_ok(404)),
+        %@FIXME
+        %respond_if_any_undefined_in_auth_context(AuthContext, wapi_handler_utils:reply_ok(404)),
         case wapi_withdrawal_backend:create(Params, Context) of
             {ok, Withdrawal = #{<<"id">> := WithdrawalId}} ->
                 wapi_handler_utils:reply_ok(202, Withdrawal, get_location('GetWithdrawal', [WithdrawalId], Opts));

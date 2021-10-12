@@ -99,9 +99,8 @@ init_per_group(Group, Config) when Group =:= ops_with_grants ->
         {granting_party, Party1},
         {party, Party2},
         {context, wapi_ct_helper:get_context(Token2)}
-    | Config
+        | Config
     ];
-
 init_per_group(Group, Config) when Group =:= base ->
     ok = init_group_context(Group),
     {Party, Token} = make_party_token(),

@@ -26,7 +26,7 @@
     currency => binary()
 }.
 
--type resource_id():: binary().
+-type resource_id() :: binary().
 -type token() :: uac_authorizer_jwt:token().
 -type expires_on() :: binary().
 
@@ -61,23 +61,31 @@ verify_grant(Resource, Token) ->
 
 %%
 
-encode_grant_claims({destination, #{
-    destination := DestinationID,
-    expires_on := Expiration
-}}) ->
+encode_grant_claims(
+    {destination, #{
+        destination := DestinationID,
+        expires_on := Expiration
+    }}
+) ->
     #{
         <<"exp">> => genlib_rfc3339:parse(Expiration, second),
         <<"resource_access">> => encode_grant_resource_access(destination, DestinationID)
     };
-encode_grant_claims({wallet, #{
-    wallet := WalletID,
-    expires_on := Expiration
-} = Wallet}) ->
+encode_grant_claims(
+    {wallet,
+        #{
+            wallet := WalletID,
+            expires_on := Expiration
+        } = Wallet}
+) ->
     Body = maybe_encode_wallet_body(Wallet),
-    maps:merge(#{
-        <<"exp">> => genlib_rfc3339:parse(Expiration, second),
-        <<"resource_access">> => encode_grant_resource_access(wallet, WalletID)
-    }, Body).
+    maps:merge(
+        #{
+            <<"exp">> => genlib_rfc3339:parse(Expiration, second),
+            <<"resource_access">> => encode_grant_resource_access(wallet, WalletID)
+        },
+        Body
+    ).
 
 maybe_encode_wallet_body(#{body := Body}) ->
     encode_wallet_body(Body);
@@ -106,10 +114,13 @@ decode_grant_claims({destination = Resource, Claims}) ->
     };
 decode_grant_claims({wallet = Resource, Claims}) ->
     Body = maybe_decode_wallet_body(Claims),
-    maps:merge(#{
-        wallet => decode_grant_resource_access(Resource, Claims),
-        expires_on => genlib_rfc3339:format(maps:get(<<"exp">>, Claims), second)
-    }, Body).
+    maps:merge(
+        #{
+            wallet => decode_grant_resource_access(Resource, Claims),
+            expires_on => genlib_rfc3339:format(maps:get(<<"exp">>, Claims), second)
+        },
+        Body
+    ).
 
 maybe_decode_wallet_body(Claims) ->
     case decode_wallet_body(Claims) of
