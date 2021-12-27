@@ -51,6 +51,7 @@ map_error_type(wrong_length) -> <<"WrongLength">>;
 map_error_type(wrong_size) -> <<"WrongSize">>;
 map_error_type(schema_violated) -> <<"SchemaViolated">>;
 map_error_type(wrong_type) -> <<"WrongType">>;
+map_error_type(wrong_body) -> <<"WrongBody">>;
 map_error_type(wrong_array) -> <<"WrongArray">>.
 
 mask_notfound(Resolution) ->
