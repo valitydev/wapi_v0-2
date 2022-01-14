@@ -40,11 +40,6 @@
     }
 }).
 
--define(IDENTITY_CLASS, #'provider_IdentityClass'{
-    id = ?STRING,
-    name = ?STRING
-}).
-
 -define(PROVIDER, #provider_Provider{
     id = ?STRING,
     name = ?STRING,
@@ -265,9 +260,6 @@
             name = ?STRING,
             created_at = ?TIMESTAMP,
             provider = ?STRING,
-            identity_class = ?STRING,
-            identity_level = ?STRING,
-            effective_challenge = ?STRING,
             is_blocked = ?BOOLEAN,
             external_id = ?STRING
         }

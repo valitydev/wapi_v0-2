@@ -3,13 +3,10 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
--include_lib("damsel/include/dmsl_webhooker_thrift.hrl").
-
 -include_lib("jose/include/jose_jwk.hrl").
 -include_lib("wapi_wallet_dummy_data.hrl").
 
 -include_lib("fistful_proto/include/ff_proto_identity_thrift.hrl").
--include_lib("identdocstore_proto/include/identdocstore_identity_document_storage_thrift.hrl").
 
 -export([all/0]).
 -export([groups/0]).
