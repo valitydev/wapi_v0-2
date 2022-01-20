@@ -1,0 +1,4 @@
+[submodule "schemes/swag"]
+	path = schemes/swag
+	url = https://github.com/valitydev/swag-wallets-2.git
+	branch = release/v0
