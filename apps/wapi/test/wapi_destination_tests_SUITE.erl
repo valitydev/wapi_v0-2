@@ -403,10 +403,10 @@ build_resource_spec({crypto_wallet, R}) ->
         <<"id">> => (R#'ResourceCryptoWallet'.crypto_wallet)#'CryptoWallet'.id
     };
 build_resource_spec({digital_wallet, R}) ->
-    Spec = build_digital_wallet_spec((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.data),
-    Spec#{
+    #{
         <<"type">> => <<"DigitalWalletDestinationResource">>,
-        <<"id">> => (R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.id
+        <<"id">> => (R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.id,
+        <<"provider">> => (R#'ResourceDigitalWallet'.digital_wallet)#'PaymentServiceRef'.id
     };
 build_resource_spec(Token) ->
     #{
@@ -431,9 +431,6 @@ build_crypto_cyrrency_spec({usdt, #'CryptoDataUSDT'{}}) ->
     #{<<"currency">> => <<"USDT">>};
 build_crypto_cyrrency_spec({zcash, #'CryptoDataZcash'{}}) ->
     #{<<"currency">> => <<"Zcash">>}.
-
-build_digital_wallet_spec({webmoney, #'DigitalDataWebmoney'{}}) ->
-    #{<<"provider">> => <<"Webmoney">>}.
 
 uniq() ->
     genlib:bsuuid().
@@ -517,7 +514,7 @@ generate_resource(ResourceType) when ResourceType =:= webmoney ->
     {digital_wallet, #'ResourceDigitalWallet'{
         digital_wallet = #'DigitalWallet'{
             id = uniq(),
-            data = generate_digital_wallet_data(webmoney)
+            payment_service = #'PaymentServiceRef'{id = generate_digital_wallet_provider(ResourceType)}
         }
     }}.
 
@@ -538,8 +535,8 @@ generate_crypto_wallet_data(usdt) ->
 generate_crypto_wallet_data(zcash) ->
     {zcash, #'CryptoDataZcash'{}}.
 
-generate_digital_wallet_data(webmoney) ->
-    {webmoney, #'DigitalDataWebmoney'{}}.
+generate_digital_wallet_provider(webmoney) ->
+    <<"webmoney">>.
 
 make_destination(C, ResourceType) ->
     PartyID = ?config(party, C),

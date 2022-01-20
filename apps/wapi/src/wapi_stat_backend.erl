@@ -408,13 +408,10 @@ unmarshal_crypto_currency_name({zcash, _}) -> <<"Zcash">>.
 
 unmarshal_digital_wallet(#'DigitalWallet'{
     id = DigitalWalletID,
-    data = Data
+    payment_service = #'PaymentServiceRef'{id = Provider}
 }) ->
     #{
         <<"type">> => <<"DigitalWalletDestinationResource">>,
         <<"id">> => DigitalWalletID,
-        <<"provider">> => unmarshal_digital_wallet_data(Data)
+        <<"provider">> => Provider
     }.
-
-unmarshal_digital_wallet_data({webmoney, #'DigitalDataWebmoney'{}}) ->
-    <<"Webmoney">>.
