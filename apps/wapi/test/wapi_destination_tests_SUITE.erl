@@ -406,7 +406,7 @@ build_resource_spec({digital_wallet, R}) ->
     #{
         <<"type">> => <<"DigitalWalletDestinationResource">>,
         <<"id">> => (R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.id,
-        <<"provider">> => (R#'ResourceDigitalWallet'.digital_wallet)#'PaymentServiceRef'.id
+        <<"provider">> => ((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.payment_service)#'PaymentServiceRef'.id
     };
 build_resource_spec(Token) ->
     #{
@@ -536,7 +536,7 @@ generate_crypto_wallet_data(zcash) ->
     {zcash, #'CryptoDataZcash'{}}.
 
 generate_digital_wallet_provider(webmoney) ->
-    <<"webmoney">>.
+    <<"Webmoney">>.
 
 make_destination(C, ResourceType) ->
     PartyID = ?config(party, C),
