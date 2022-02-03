@@ -27,8 +27,6 @@
         cowboy_access_log,
         snowflake,
         uac,
-        prometheus,
-        prometheus_cowboy,
         bouncer_client,
         token_keeper_client,
         thrift,
