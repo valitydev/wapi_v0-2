@@ -98,8 +98,7 @@ init_suite(Module, Config) ->
     Apps1 =
         start_app(scoper) ++
             start_app(woody) ++
-            start_app({wapi, Config}) ++
-            wapi_ct_helper_token_keeper:mock_user_session_token(SupPid),
+            start_app({wapi, Config}),
     wapi_ct_helper_bouncer:mock_client(SupPid),
     [{apps, lists:reverse(Apps1)}, {suite_test_sup, SupPid} | Config].
 
@@ -256,7 +255,7 @@ mock_services_(Services, SupPid) when is_pid(SupPid) ->
                     Acc#{ServiceName => make_url(ServiceName, Port)};
                 org_management ->
                     Acc#{ServiceName => make_url(ServiceName, Port)};
-                token_keeper ->
+                token_authenticator ->
                     Acc#{ServiceName => make_url(ServiceName, Port)};
                 bender_thrift ->
                     Acc#{ServiceName => #{'Bender' => make_url(ServiceName, Port)}};
@@ -276,8 +275,8 @@ get_service_name({ServiceName, _WoodyService, _Fun}) ->
 
 mock_service_handler({ServiceName = bender_thrift, Fun}) ->
     mock_service_handler(ServiceName, {bender_thrift, 'Bender'}, Fun);
-mock_service_handler({ServiceName = token_keeper, Fun}) ->
-    mock_service_handler(ServiceName, {tk_token_keeper_thrift, 'TokenKeeper'}, Fun);
+mock_service_handler({ServiceName = token_authenticator, Fun}) ->
+    mock_service_handler(ServiceName, {tk_token_keeper_thrift, 'TokenAuthenticator'}, Fun);
 mock_service_handler({ServiceName = bouncer, Fun}) ->
     mock_service_handler(ServiceName, {bouncer_decisions_thrift, 'Arbiter'}, Fun);
 mock_service_handler({ServiceName = org_management, Fun}) ->

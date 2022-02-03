@@ -89,12 +89,15 @@ init_per_group(Group, Config) when Group =:= base ->
     Party = genlib:bsuuid(),
     {ok, Token} = wapi_ct_helper:issue_token(Party, [{[party], write}], unlimited, ?DOMAIN),
     Config1 = [{party, Party} | Config],
-    [{context, wapi_ct_helper:get_context(Token)} | Config1];
+    GroupSup = wapi_ct_helper:start_mocked_service_sup(?MODULE),
+    _ = wapi_ct_helper_token_keeper:mock_user_session_token(Party, GroupSup),
+    [{group_test_sup, GroupSup}, {context, wapi_ct_helper:get_context(Token)} | Config1];
 init_per_group(_, Config) ->
     Config.
 
 -spec end_per_group(group_name(), config()) -> _.
-end_per_group(_Group, _C) ->
+end_per_group(_Group, C) ->
+    _ = wapi_ct_helper:stop_mocked_service_sup(?config(group_test_sup, C)),
     ok.
 
 -spec init_per_testcase(test_case_name(), config()) -> config().
@@ -139,7 +142,7 @@ create_webhook_ok_test(C) ->
         #{
             body => #{
                 <<"identityID">> => ?STRING,
-                <<"url">> => ?STRING,
+                <<"url">> => ?URL,
                 <<"scope">> => #{
                     <<"topic">> => <<"DestinationsTopic">>,
                     <<"eventTypes">> => [<<"DestinationCreated">>]
@@ -184,7 +187,7 @@ create_withdrawal_webhook_ok_test(C) ->
         #{
             body => #{
                 <<"identityID">> => ?STRING,
-                <<"url">> => ?STRING,
+                <<"url">> => ?URL,
                 <<"scope">> => #{
                     <<"topic">> => <<"WithdrawalsTopic">>,
                     <<"walletID">> => WalletID,

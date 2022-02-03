@@ -177,5 +177,5 @@ make_token_context(#{cowboy_req := CowboyReq}) ->
         Origin when is_binary(Origin) ->
             #{request_origin => Origin};
         undefined ->
-            undefined
+            #{}
     end.
