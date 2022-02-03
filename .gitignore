@@ -4,16 +4,14 @@ log
 /_checkouts/
 *~
 erl_crash.dump
+rebar3.crashdump
 .tags*
 *.sublime-workspace
 .edts
 .DS_Store
-Dockerfile
-docker-compose.yml
 /.idea/
 *.beam
 /test/log/
 
 # wapi
-apps/swag_*
 tags
