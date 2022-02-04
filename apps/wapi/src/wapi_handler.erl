@@ -9,13 +9,9 @@
 
 -type tag() :: wallet | payres.
 
--type operation_id() ::
-    swag_client_payres:operation_id()
-    | swag_server_wallet:operation_id().
+-type operation_id() :: swag_server_wallet:operation_id().
 
--type swagger_context() ::
-    swag_client_payres:request_context()
-    | swag_server_wallet:request_context().
+-type swagger_context() :: swag_server_wallet:request_context().
 
 -type context() :: #{
     operation_id := operation_id(),
@@ -61,7 +57,7 @@
 
 %% API
 
--define(request_result, wapi_req_result).
+-define(REQUEST_RESULT, wapi_req_result).
 -define(APP, wapi).
 
 -spec handle_request(tag(), operation_id(), req_data(), swagger_context(), opts()) -> request_result().
@@ -105,7 +101,7 @@ process_request(Tag, OperationID, Req, SwagContext0, Opts, WoodyContext) ->
         throw:{token_auth_failed, Reason} ->
             _ = logger:info("API Key authorization failed for ~p due to ~p", [OperationID, Reason]),
             wapi_handler_utils:reply_ok(401);
-        throw:{?request_result, Result} ->
+        throw:{?REQUEST_RESULT, Result} ->
             Result;
         error:{woody_error, {Source, Class, Details}} ->
             process_woody_error(Source, Class, Details)
@@ -115,7 +111,7 @@ process_request(Tag, OperationID, Req, SwagContext0, Opts, WoodyContext) ->
 
 -spec throw_result(request_result()) -> no_return().
 throw_result(Res) ->
-    erlang:throw({?request_result, Res}).
+    erlang:throw({?REQUEST_RESULT, Res}).
 
 -spec respond_if_forbidden(Resolution, request_result()) -> Resolution | throw(request_result()) when
     Resolution :: wapi_auth:resolution().

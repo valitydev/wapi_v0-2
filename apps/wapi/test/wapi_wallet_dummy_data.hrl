@@ -10,6 +10,7 @@
 -define(INTEGER, 10000).
 -define(INTEGER_BINARY, <<"10000">>).
 -define(TIMESTAMP, <<"2016-03-22T06:12:27Z">>).
+-define(URL, <<"https://example.com">>).
 -define(DEFAULT_CONTEXT(PartyID), #{
     <<"com.rbkmoney.wapi">> =>
         {obj, #{
@@ -377,7 +378,7 @@
     identity_id = ?STRING,
     wallet_id = WalletID,
     event_filter = EventFilter,
-    url = ?STRING,
+    url = ?URL,
     pub_key = ?STRING,
     enabled = false
 }).

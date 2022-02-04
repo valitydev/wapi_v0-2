@@ -35,8 +35,8 @@
 % common-api is used since it is the domain used in production RN
 % TODO: change to wallet-api (or just omit since it is the default one) when new tokens will be a thing
 -define(DOMAIN, <<"common-api">>).
--define(badresp(Code), {error, {invalid_response_code, Code}}).
--define(emptyresp(Code), {error, {Code, #{}}}).
+-define(BAD_RESP(Code), {error, {invalid_response_code, Code}}).
+-define(EMPTY_RESP(Code), {error, {Code, #{}}}).
 
 -type test_case_name() :: atom().
 -type config() :: [{atom(), any()}].
@@ -102,12 +102,10 @@ end_per_group(_Group, _C) ->
 -spec init_per_testcase(test_case_name(), config()) -> config().
 init_per_testcase(Name, C) ->
     C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
-    ok = wapi_context:save(C1),
     [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1].
 
--spec end_per_testcase(test_case_name(), config()) -> config().
+-spec end_per_testcase(test_case_name(), config()) -> ok.
 end_per_testcase(_Name, C) ->
-    ok = wapi_context:cleanup(),
     wapi_ct_helper:stop_mocked_service_sup(?config(test_sup, C)),
     ok.
 
@@ -125,6 +123,8 @@ create_identity(C) ->
     ),
     {ok, _} = create_identity_call_api(C).
 
+%% Disabled to suppress error_handling warning
+-dialyzer({nowarn_function, create_identity_provider_notfound/1}).
 -spec create_identity_provider_notfound(config()) -> _.
 create_identity_provider_notfound(C) ->
     PartyID = ?config(party, C),
@@ -141,6 +141,8 @@ create_identity_provider_notfound(C) ->
         create_identity_call_api(C)
     ).
 
+%% Disabled to suppress error_handling warning
+-dialyzer({nowarn_function, create_identity_party_notfound/1}).
 -spec create_identity_party_notfound(config()) -> _.
 create_identity_party_notfound(C) ->
     PartyID = ?config(party, C),
@@ -157,6 +159,8 @@ create_identity_party_notfound(C) ->
         create_identity_call_api(C)
     ).
 
+%% Disabled to suppress error_handling warning
+-dialyzer({nowarn_function, create_identity_party_inaccessible/1}).
 -spec create_identity_party_inaccessible(config()) -> _.
 create_identity_party_inaccessible(C) ->
     PartyID = ?config(party, C),

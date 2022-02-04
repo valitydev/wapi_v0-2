@@ -27,8 +27,8 @@
 % common-api is used since it is the domain used in production RN
 % TODO: change to wallet-api (or just omit since it is the default one) when new tokens will be a thing
 -define(DOMAIN, <<"common-api">>).
--define(badresp(Code), {error, {invalid_response_code, Code}}).
--define(emptyresp(Code), {error, {Code, #{}}}).
+-define(BAD_RESP(Code), {error, {invalid_response_code, Code}}).
+-define(EMPTY_RESP(Code), {error, {Code, #{}}}).
 
 -type test_case_name() :: atom().
 -type config() :: [{atom(), any()}].
@@ -90,12 +90,10 @@ end_per_group(_Group, _C) ->
 -spec init_per_testcase(test_case_name(), config()) -> config().
 init_per_testcase(Name, C) ->
     C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
-    ok = wapi_context:save(C1),
     [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1].
 
--spec end_per_testcase(test_case_name(), config()) -> config().
+-spec end_per_testcase(test_case_name(), config()) -> ok.
 end_per_testcase(_Name, C) ->
-    ok = wapi_context:cleanup(),
     _ = wapi_ct_helper:stop_mocked_service_sup(?config(test_sup, C)),
     ok.
 
@@ -120,6 +118,8 @@ get_provider_ok(C) ->
         wapi_ct_helper:cfg(context, C)
     ).
 
+%% Disabled to suppress error_handling warning
+-dialyzer({nowarn_function, get_provider_fail_notfound/1}).
 -spec get_provider_fail_notfound(config()) -> _.
 get_provider_fail_notfound(C) ->
     _ = wapi_ct_helper_bouncer:mock_assert_op_ctx(<<"GetProvider">>, C),
