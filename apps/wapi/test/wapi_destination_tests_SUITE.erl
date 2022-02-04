@@ -455,7 +455,7 @@ generate_identity(PartyID) ->
 
 generate_context(PartyID) ->
     #{
-        <<"com.rbkmoney.wapi">> =>
+        <<"dev.vality.wapi">> =>
             {obj, #{
                 {str, <<"owner">>} => {str, PartyID},
                 {str, <<"name">>} => {str, uniq()},
