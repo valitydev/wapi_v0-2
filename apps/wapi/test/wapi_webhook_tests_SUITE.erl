@@ -2,13 +2,9 @@
 
 -include_lib("common_test/include/ct.hrl").
 
--include_lib("damsel/include/dmsl_domain_config_thrift.hrl").
-
--include_lib("jose/include/jose_jwk.hrl").
 -include_lib("wapi_wallet_dummy_data.hrl").
 -include_lib("wapi_bouncer_data.hrl").
 
--include_lib("fistful_proto/include/ff_proto_identity_thrift.hrl").
 -include_lib("fistful_proto/include/ff_proto_wallet_thrift.hrl").
 -include_lib("fistful_proto/include/ff_proto_webhooker_thrift.hrl").
 
@@ -30,9 +26,6 @@
     get_webhook_ok_test/1,
     delete_webhook_ok_test/1
 ]).
-
--define(BAD_RESP(Code), {error, {invalid_response_code, Code}}).
--define(EMPTY_RESP(Code), {error, {Code, #{}}}).
 
 -type test_case_name() :: atom().
 -type config() :: [{atom(), any()}].

@@ -2,11 +2,7 @@
 
 -include_lib("common_test/include/ct.hrl").
 
--include_lib("damsel/include/dmsl_domain_config_thrift.hrl").
 -include_lib("fistful_reporter_proto/include/ff_reporter_reports_thrift.hrl").
--include_lib("file_storage_proto/include/fs_file_storage_thrift.hrl").
--include_lib("fistful_proto/include/ff_proto_base_thrift.hrl").
--include_lib("jose/include/jose_jwk.hrl").
 -include_lib("wapi_wallet_dummy_data.hrl").
 -include_lib("fistful_proto/include/ff_proto_identity_thrift.hrl").
 -include_lib("wapi_bouncer_data.hrl").
@@ -33,7 +29,6 @@
 % common-api is used since it is the domain used in production RN
 % TODO: change to wallet-api (or just omit since it is the default one) when new tokens will be a thing
 -define(DOMAIN, <<"common-api">>).
--define(BAD_RESP(Code), {error, {invalid_response_code, Code}}).
 -define(EMPTY_RESP(Code), {error, {Code, #{}}}).
 
 -type test_case_name() :: atom().
