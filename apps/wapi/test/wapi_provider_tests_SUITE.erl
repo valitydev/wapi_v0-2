@@ -110,14 +110,12 @@ get_provider_ok(C) ->
         wapi_ct_helper:cfg(context, C)
     ).
 
-%% Disabled to suppress error_handling warning
--dialyzer({nowarn_function, get_provider_fail_notfound/1}).
 -spec get_provider_fail_notfound(config()) -> _.
 get_provider_fail_notfound(C) ->
     _ = wapi_ct_helper_bouncer:mock_assert_op_ctx(<<"GetProvider">>, C),
     _ = wapi_ct_helper:mock_services(
         [
-            {fistful_provider, fun('GetProvider', _) -> throw(#fistful_ProviderNotFound{}) end}
+            {fistful_provider, fun('GetProvider', _) -> {throwing, #fistful_ProviderNotFound{}} end}
         ],
         C
     ),

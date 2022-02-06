@@ -112,8 +112,6 @@ create_identity(C) ->
     ),
     {ok, _} = create_identity_call_api(C).
 
-%% Disabled to suppress error_handling warning
--dialyzer({nowarn_function, create_identity_provider_notfound/1}).
 -spec create_identity_provider_notfound(config()) -> _.
 create_identity_provider_notfound(C) ->
     PartyID = ?config(party, C),
@@ -121,7 +119,7 @@ create_identity_provider_notfound(C) ->
     _ = wapi_ct_helper:mock_services(
         [
             {bender_thrift, fun('GenerateID', _) -> {ok, ?GENERATE_ID_RESULT} end},
-            {fistful_identity, fun('Create', _) -> throw(#fistful_ProviderNotFound{}) end}
+            {fistful_identity, fun('Create', _) -> {throwing, #fistful_ProviderNotFound{}} end}
         ],
         C
     ),
@@ -130,8 +128,6 @@ create_identity_provider_notfound(C) ->
         create_identity_call_api(C)
     ).
 
-%% Disabled to suppress error_handling warning
--dialyzer({nowarn_function, create_identity_party_notfound/1}).
 -spec create_identity_party_notfound(config()) -> _.
 create_identity_party_notfound(C) ->
     PartyID = ?config(party, C),
@@ -139,7 +135,7 @@ create_identity_party_notfound(C) ->
     _ = wapi_ct_helper:mock_services(
         [
             {bender_thrift, fun('GenerateID', _) -> {ok, ?GENERATE_ID_RESULT} end},
-            {fistful_identity, fun('Create', _) -> throw(#fistful_PartyNotFound{}) end}
+            {fistful_identity, fun('Create', _) -> {throwing, #fistful_PartyNotFound{}} end}
         ],
         C
     ),
@@ -148,8 +144,6 @@ create_identity_party_notfound(C) ->
         create_identity_call_api(C)
     ).
 
-%% Disabled to suppress error_handling warning
--dialyzer({nowarn_function, create_identity_party_inaccessible/1}).
 -spec create_identity_party_inaccessible(config()) -> _.
 create_identity_party_inaccessible(C) ->
     PartyID = ?config(party, C),
@@ -157,7 +151,7 @@ create_identity_party_inaccessible(C) ->
     _ = wapi_ct_helper:mock_services(
         [
             {bender_thrift, fun('GenerateID', _) -> {ok, ?GENERATE_ID_RESULT} end},
-            {fistful_identity, fun('Create', _) -> throw(#fistful_PartyInaccessible{}) end}
+            {fistful_identity, fun('Create', _) -> {throwing, #fistful_PartyInaccessible{}} end}
         ],
         C
     ),
