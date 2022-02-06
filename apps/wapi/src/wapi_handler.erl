@@ -79,11 +79,7 @@ handle_request(Tag, OperationID, Req, SwagContext, Opts) ->
 process_request(Tag, OperationID, Req, SwagContext0, Opts, WoodyContext) ->
     _ = logger:info("Processing request ~p", [OperationID]),
     try
-        %% TODO remove this fistful specific step, when separating the wapi service.
-        ok = wapi_context:save(create_wapi_context(WoodyContext)),
-
         SwagContext = do_authorize_api_key(SwagContext0, WoodyContext),
-
         Context = create_handler_context(OperationID, SwagContext, WoodyContext),
         Handler = get_handler(Tag),
         {ok, RequestState} = Handler:prepare(OperationID, Req, Context, Opts),
@@ -105,8 +101,6 @@ process_request(Tag, OperationID, Req, SwagContext0, Opts, WoodyContext) ->
             Result;
         error:{woody_error, {Source, Class, Details}} ->
             process_woody_error(Source, Class, Details)
-    after
-        wapi_context:cleanup()
     end.
 
 -spec throw_result(request_result()) -> no_return().
@@ -152,13 +146,6 @@ process_woody_error(_Source, resource_unavailable, _Details) ->
     wapi_handler_utils:reply_error(504);
 process_woody_error(_Source, result_unknown, _Details) ->
     wapi_handler_utils:reply_error(504).
-
--spec create_wapi_context(woody_context:ctx()) -> wapi_context:context().
-create_wapi_context(WoodyContext) ->
-    ContextOptions = #{
-        woody_context => WoodyContext
-    },
-    wapi_context:create(ContextOptions).
 
 do_authorize_api_key(SwagContext = #{auth_context := PreAuthContext}, WoodyContext) ->
     case wapi_auth:authorize_api_key(PreAuthContext, make_token_context(SwagContext), WoodyContext) of
