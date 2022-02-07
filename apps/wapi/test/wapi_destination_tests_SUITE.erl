@@ -394,7 +394,8 @@ build_resource_spec({digital_wallet, R}) ->
     #{
         <<"type">> => <<"DigitalWalletDestinationResource">>,
         <<"id">> => (R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.id,
-        <<"provider">> => ((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.payment_service)#'PaymentServiceRef'.id
+        <<"provider">> =>
+            ((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.payment_service)#'PaymentServiceRef'.id
     };
 build_resource_spec(Token) ->
     #{
