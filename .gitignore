@@ -12,5 +12,5 @@ erl_crash.dump
 *.beam
 /test/log/
 
-# wapi
 tags
+.image.dev
