@@ -144,7 +144,14 @@
     }}
 ).
 
+-define(DIGITAL_WALLET, #'DigitalWallet'{
+    id = ?STRING,
+    token = ?STRING,
+    payment_service = #'PaymentServiceRef'{id = <<"Webmoney">>}
+}).
+
 -define(RESOURCE, {bank_card, ?BANK_CARD}).
+-define(RESOURCE_DIGITAL_WALLET, {digital_wallet, ?DIGITAL_WALLET}).
 
 -define(BIN(CardNumber), string:slice(CardNumber, 0, 6)).
 
@@ -248,6 +255,17 @@
             identity = ?STRING,
             currency_symbolic_code = ?RUB,
             resource = ?RESOURCE,
+            external_id = ?STRING,
+            status = {unauthorized, #fistfulstat_Unauthorized{}}
+        },
+        #fistfulstat_StatDestination{
+            id = ?STRING,
+            name = ?STRING,
+            created_at = ?TIMESTAMP,
+            is_blocked = ?BOOLEAN,
+            identity = ?STRING,
+            currency_symbolic_code = ?RUB,
+            resource = ?RESOURCE_DIGITAL_WALLET,
             external_id = ?STRING,
             status = {unauthorized, #fistfulstat_Unauthorized{}}
         }
