@@ -1336,3 +1336,50 @@ maybe_to_list(undefined) ->
     [];
 maybe_to_list(T) ->
     [T].
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+-spec test() -> _.
+
+-spec map_error_test() -> _.
+
+map_error_test() ->
+    ?assertEqual(
+        map_error(validation_error, #{type => no_match, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: NoMatch\",\"errorType\":\"NoMatch\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => not_found, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: NotFound\",\"errorType\":\"NotFound\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => not_in_range, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: NotInRange\",\"errorType\":\"NotInRange\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => wrong_length, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: WrongLength\",\"errorType\":\"WrongLength\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => wrong_size, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: WrongSize\",\"errorType\":\"WrongSize\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => schema_violated, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: SchemaViolated\",\"errorType\":\"SchemaViolated\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => wrong_type, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: WrongType\",\"errorType\":\"WrongType\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => wrong_body, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: WrongBody\",\"errorType\":\"WrongBody\",\"name\":\"param\"}">>
+    ),
+    ?assertEqual(
+        map_error(validation_error, #{type => wrong_array, param_name => param}),
+        <<"{\"description\":\"Request parameter: param, error type: WrongArray\",\"errorType\":\"WrongArray\",\"name\":\"param\"}">>
+    ).
+
+-endif.
