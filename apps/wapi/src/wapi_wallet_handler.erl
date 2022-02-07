@@ -1344,42 +1344,46 @@ maybe_to_list(T) ->
 
 -spec map_error_test() -> _.
 
+format(Name, Type) ->
+    Format = <<"{\"description\":\"Request parameter: ~s, error type: ~s\",\"errorType\":\"~s\",\"name\":\"~s\"}">>,
+    genlib:to_binary(io_lib:format(Format, [Name, Type, Type, Name])).
+
 map_error_test() ->
     ?assertEqual(
         map_error(validation_error, #{type => no_match, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: NoMatch\",\"errorType\":\"NoMatch\",\"name\":\"param\"}">>
+        format("param", "NoMatch")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => not_found, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: NotFound\",\"errorType\":\"NotFound\",\"name\":\"param\"}">>
+        format("param", "NotFound")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => not_in_range, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: NotInRange\",\"errorType\":\"NotInRange\",\"name\":\"param\"}">>
+        format("param", "NotInRange")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => wrong_length, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: WrongLength\",\"errorType\":\"WrongLength\",\"name\":\"param\"}">>
+        format("param", "WrongLength")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => wrong_size, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: WrongSize\",\"errorType\":\"WrongSize\",\"name\":\"param\"}">>
+        format("param", "WrongSize")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => schema_violated, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: SchemaViolated\",\"errorType\":\"SchemaViolated\",\"name\":\"param\"}">>
+        format("param", "SchemaViolated")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => wrong_type, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: WrongType\",\"errorType\":\"WrongType\",\"name\":\"param\"}">>
+        format("param", "WrongType")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => wrong_body, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: WrongBody\",\"errorType\":\"WrongBody\",\"name\":\"param\"}">>
+        format("param", "WrongBody")
     ),
     ?assertEqual(
         map_error(validation_error, #{type => wrong_array, param_name => param}),
-        <<"{\"description\":\"Request parameter: param, error type: WrongArray\",\"errorType\":\"WrongArray\",\"name\":\"param\"}">>
+        format("param", "WrongArray")
     ).
 
 -endif.
