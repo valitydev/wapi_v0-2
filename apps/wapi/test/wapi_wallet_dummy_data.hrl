@@ -7,12 +7,12 @@
 -define(RESIDENCE_RUS, <<"RUS">>).
 -define(RESIDENCE_DEU, <<"DEU">>).
 -define(JSON, <<"{}">>).
--define(URL, <<"http://my.website.cool">>).
 -define(INTEGER, 10000).
 -define(INTEGER_BINARY, <<"10000">>).
 -define(TIMESTAMP, <<"2016-03-22T06:12:27Z">>).
+-define(URL, <<"https://example.com">>).
 -define(DEFAULT_CONTEXT(PartyID), #{
-    <<"com.rbkmoney.wapi">> =>
+    <<"dev.vality.wapi">> =>
         {obj, #{
             {str, <<"owner">>} => {str, PartyID},
             {str, <<"name">>} => {str, ?STRING},
@@ -25,7 +25,7 @@
 -define(TEST_RULESET_ID, <<"test/api">>).
 
 -define(DEFAULT_CONTEXT_NO_NAME(PartyID), #{
-    <<"com.rbkmoney.wapi">> =>
+    <<"dev.vality.wapi">> =>
         {obj, #{
             {str, <<"owner">>} => {str, PartyID},
             {str, <<"metadata">>} => {obj, #{{str, <<"somedata">>} => {str, ?STRING}}}

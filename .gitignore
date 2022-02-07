@@ -13,5 +13,5 @@ rebar3.crashdump
 *.beam
 /test/log/
 
-# wapi
 tags
+.image.dev

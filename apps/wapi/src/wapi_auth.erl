@@ -26,8 +26,8 @@
     | forbidden
     | {forbidden, _Reason}.
 
--define(authorized(Ctx), {authorized, Ctx}).
--define(unauthorized(Ctx), {unauthorized, Ctx}).
+-define(AUTHORIZED(Ctx), {authorized, Ctx}).
+-define(UNAUTHORIZED(Ctx), {unauthorized, Ctx}).
 
 %%
 
@@ -41,15 +41,15 @@ get_subject_id(AuthContext) ->
     end.
 
 -spec get_party_id(auth_context()) -> binary() | undefined.
-get_party_id(?authorized(#{metadata := Metadata})) ->
+get_party_id(?AUTHORIZED(#{metadata := Metadata})) ->
     get_metadata(get_metadata_mapped_key(party_id), Metadata).
 
 -spec get_user_id(auth_context()) -> binary() | undefined.
-get_user_id(?authorized(#{metadata := Metadata})) ->
+get_user_id(?AUTHORIZED(#{metadata := Metadata})) ->
     get_metadata(get_metadata_mapped_key(user_id), Metadata).
 
 -spec get_user_email(auth_context()) -> binary() | undefined.
-get_user_email(?authorized(#{metadata := Metadata})) ->
+get_user_email(?AUTHORIZED(#{metadata := Metadata})) ->
     get_metadata(get_metadata_mapped_key(user_email), Metadata).
 
 %%
@@ -58,21 +58,21 @@ get_user_email(?authorized(#{metadata := Metadata})) ->
 preauthorize_api_key(ApiKey) ->
     case parse_api_key(ApiKey) of
         {ok, Token} ->
-            {ok, ?unauthorized(Token)};
+            {ok, ?UNAUTHORIZED(Token)};
         {error, Error} ->
             {error, Error}
     end.
 
 -spec authorize_api_key(preauth_context(), token_keeper_client:token_context(), woody_context:ctx()) ->
     {ok, auth_context()} | {error, _Reason}.
-authorize_api_key(?unauthorized({TokenType, Token}), TokenContext, WoodyContext) ->
+authorize_api_key(?UNAUTHORIZED({TokenType, Token}), TokenContext, WoodyContext) ->
     authorize_token_by_type(TokenType, Token, TokenContext, WoodyContext).
 
 authorize_token_by_type(bearer, Token, TokenContext, WoodyContext) ->
     Authenticator = token_keeper_client:authenticator(WoodyContext),
     case token_keeper_authenticator:authenticate(Token, TokenContext, Authenticator) of
         {ok, AuthData} ->
-            {ok, ?authorized(AuthData)};
+            {ok, ?AUTHORIZED(AuthData)};
         {error, TokenKeeperError} ->
             _ = logger:warning("Token keeper authorization failed: ~p", [TokenKeeperError]),
             {error, {auth_failed, TokenKeeperError}}
@@ -96,7 +96,7 @@ authorize_operation(Prototypes, Context) ->
 
 %%
 
-get_token_keeper_fragment(?authorized(#{context := Context})) ->
+get_token_keeper_fragment(?AUTHORIZED(#{context := Context})) ->
     Context.
 
 extract_auth_context(#{swagger_context := #{auth_context := AuthContext}}) ->
