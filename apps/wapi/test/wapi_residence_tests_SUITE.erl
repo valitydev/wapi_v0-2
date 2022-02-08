@@ -65,11 +65,10 @@ end_per_suite(C) ->
 -spec init_per_group(group_name(), config()) -> config().
 init_per_group(Group, Config) when Group =:= base ->
     Party = genlib:bsuuid(),
-    {ok, Token} = wapi_ct_helper:issue_token(Party, [{[party], write}], unlimited, ?DOMAIN),
     Config1 = [{party, Party} | Config],
     GroupSup = wapi_ct_helper:start_mocked_service_sup(?MODULE),
     _ = wapi_ct_helper_token_keeper:mock_user_session_token(Party, GroupSup),
-    [{group_test_sup, GroupSup}, {context, wapi_ct_helper:get_context(Token)} | Config1];
+    [{group_test_sup, GroupSup}, {context, wapi_ct_helper:get_context(?API_TOKEN)} | Config1];
 init_per_group(_, Config) ->
     Config.
 

@@ -16,7 +16,6 @@
 -export([init_suite/2]).
 -export([start_app/1]).
 -export([start_app/2]).
--export([issue_token/4]).
 -export([get_context/1]).
 -export([get_keysource/2]).
 -export([start_mocked_service_sup/1]).
@@ -176,24 +175,6 @@ set_app_env(AppName, Env) ->
 -spec get_keysource(_, config()) -> _.
 get_keysource(Key, Config) ->
     filename:join(?config(data_dir, Config), Key).
-
-% TODO: spec
--spec issue_token(_, _, _, _) ->
-    {ok, binary()}
-    | {error, nonexistent_signee}.
-issue_token(PartyID, ACL, LifeTime, Domain) ->
-    Claims = #{
-        <<"exp">> => LifeTime,
-        <<"resource_access">> => #{
-            Domain => uac_acl:from_list(ACL)
-        }
-    },
-    uac_authorizer_jwt:issue(
-        wapi_utils:get_unique_id(),
-        PartyID,
-        Claims,
-        ?SIGNEE
-    ).
 
 -spec get_context(binary()) -> wapi_client_lib:context().
 get_context(Token) ->
