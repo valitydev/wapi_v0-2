@@ -35,7 +35,7 @@
 -export([ethereum_resource_test/1]).
 -export([usdt_resource_test/1]).
 -export([zcash_resource_test/1]).
--export([webmoney_resource_test/1]).
+-export([digital_wallet_resource_test/1]).
 
 % common-api is used since it is the domain used in production RN
 % TODO: change to wallet-api (or just omit since it is the default one) when new tokens will be a thing
@@ -77,7 +77,7 @@ groups() ->
             ethereum_resource_test,
             usdt_resource_test,
             zcash_resource_test,
-            webmoney_resource_test
+            digital_wallet_resource_test
         ]}
     ].
 
@@ -278,11 +278,11 @@ zcash_resource_test(C) ->
     {crypto_wallet, #'ResourceCryptoWallet'{crypto_wallet = #'CryptoWallet'{id = ID}}} = Resource,
     ?assertEqual(ID, maps:get(<<"id">>, SwagResource)).
 
--spec webmoney_resource_test(config()) -> _.
-webmoney_resource_test(C) ->
-    {ok, Resource, SwagResource} = do_destination_lifecycle(webmoney, C),
+-spec digital_wallet_resource_test(config()) -> _.
+digital_wallet_resource_test(C) ->
+    {ok, Resource, SwagResource} = do_destination_lifecycle(digital_wallet, C),
     ?assertEqual(<<"DigitalWalletDestinationResource">>, maps:get(<<"type">>, SwagResource)),
-    ?assertEqual(<<"Webmoney">>, maps:get(<<"provider">>, SwagResource)),
+    ?assertEqual(<<"nomoney">>, maps:get(<<"provider">>, SwagResource)),
     {digital_wallet, #'ResourceDigitalWallet'{digital_wallet = #'DigitalWallet'{id = ID}}} = Resource,
     ?assertEqual(ID, maps:get(<<"id">>, SwagResource)).
 
@@ -393,10 +393,11 @@ build_resource_spec({crypto_wallet, R}) ->
         <<"id">> => (R#'ResourceCryptoWallet'.crypto_wallet)#'CryptoWallet'.id
     };
 build_resource_spec({digital_wallet, R}) ->
-    Spec = build_digital_wallet_spec((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.data),
-    Spec#{
+    #{
         <<"type">> => <<"DigitalWalletDestinationResource">>,
-        <<"id">> => (R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.id
+        <<"id">> => (R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.id,
+        <<"provider">> =>
+            ((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.payment_service)#'PaymentServiceRef'.id
     };
 build_resource_spec(Token) ->
     #{
@@ -422,9 +423,6 @@ build_crypto_cyrrency_spec({usdt, #'CryptoDataUSDT'{}}) ->
 build_crypto_cyrrency_spec({zcash, #'CryptoDataZcash'{}}) ->
     #{<<"currency">> => <<"Zcash">>}.
 
-build_digital_wallet_spec({webmoney, #'DigitalDataWebmoney'{}}) ->
-    #{<<"provider">> => <<"Webmoney">>}.
-
 uniq() ->
     genlib:bsuuid().
 
@@ -439,7 +437,7 @@ generate_identity(PartyID) ->
 
 generate_context(PartyID) ->
     #{
-        <<"dev.vality.wapi">> =>
+        ?CTX_NS =>
             {obj, #{
                 {str, <<"owner">>} => {str, PartyID},
                 {str, <<"name">>} => {str, uniq()},
@@ -503,11 +501,11 @@ generate_resource(ResourceType) when
             currency = Currency
         }
     }};
-generate_resource(ResourceType) when ResourceType =:= webmoney ->
+generate_resource(ResourceType) when ResourceType =:= digital_wallet ->
     {digital_wallet, #'ResourceDigitalWallet'{
         digital_wallet = #'DigitalWallet'{
             id = uniq(),
-            data = generate_digital_wallet_data(webmoney)
+            payment_service = #'PaymentServiceRef'{id = generate_digital_wallet_provider()}
         }
     }}.
 
@@ -528,8 +526,8 @@ generate_crypto_wallet_data(usdt) ->
 generate_crypto_wallet_data(zcash) ->
     {zcash, #'CryptoDataZcash'{}}.
 
-generate_digital_wallet_data(webmoney) ->
-    {webmoney, #'DigitalDataWebmoney'{}}.
+generate_digital_wallet_provider() ->
+    <<"nomoney">>.
 
 make_destination(C, ResourceType) ->
     PartyID = ?config(party, C),

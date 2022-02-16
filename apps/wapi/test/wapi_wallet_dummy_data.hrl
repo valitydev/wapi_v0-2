@@ -12,8 +12,9 @@
 -define(TIMESTAMP, <<"2016-03-22T06:12:27Z">>).
 -define(URL, <<"https://example.com">>).
 -define(API_TOKEN, <<"letmein">>).
+-define(CTX_NS, <<"com.rbkmoney.wapi">>).
 -define(DEFAULT_CONTEXT(PartyID), #{
-    <<"dev.vality.wapi">> =>
+    ?CTX_NS =>
         {obj, #{
             {str, <<"owner">>} => {str, PartyID},
             {str, <<"name">>} => {str, ?STRING},
@@ -26,7 +27,7 @@
 -define(TEST_RULESET_ID, <<"test/api">>).
 
 -define(DEFAULT_CONTEXT_NO_NAME(PartyID), #{
-    <<"dev.vality.wapi">> =>
+    ?CTX_NS =>
         {obj, #{
             {str, <<"owner">>} => {str, PartyID},
             {str, <<"metadata">>} => {obj, #{{str, <<"somedata">>} => {str, ?STRING}}}
@@ -40,11 +41,6 @@
     currency = #'CurrencyRef'{
         symbolic_code = ?RUB
     }
-}).
-
--define(IDENTITY_CLASS, #'provider_IdentityClass'{
-    id = ?STRING,
-    name = ?STRING
 }).
 
 -define(PROVIDER, #provider_Provider{
@@ -150,7 +146,14 @@
     }}
 ).
 
+-define(DIGITAL_WALLET, #'DigitalWallet'{
+    id = ?STRING,
+    token = ?STRING,
+    payment_service = #'PaymentServiceRef'{id = <<"nomoney">>}
+}).
+
 -define(RESOURCE, {bank_card, ?BANK_CARD}).
+-define(RESOURCE_DIGITAL_WALLET, {digital_wallet, ?DIGITAL_WALLET}).
 
 -define(BIN(CardNumber), string:slice(CardNumber, 0, 6)).
 
@@ -256,6 +259,17 @@
             resource = ?RESOURCE,
             external_id = ?STRING,
             status = {unauthorized, #fistfulstat_Unauthorized{}}
+        },
+        #fistfulstat_StatDestination{
+            id = ?STRING,
+            name = ?STRING,
+            created_at = ?TIMESTAMP,
+            is_blocked = ?BOOLEAN,
+            identity = ?STRING,
+            currency_symbolic_code = ?RUB,
+            resource = ?RESOURCE_DIGITAL_WALLET,
+            external_id = ?STRING,
+            status = {unauthorized, #fistfulstat_Unauthorized{}}
         }
     ]}
 ).
@@ -267,9 +281,6 @@
             name = ?STRING,
             created_at = ?TIMESTAMP,
             provider = ?STRING,
-            identity_class = ?STRING,
-            identity_level = ?STRING,
-            effective_challenge = ?STRING,
             is_blocked = ?BOOLEAN,
             external_id = ?STRING
         }
