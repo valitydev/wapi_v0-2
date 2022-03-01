@@ -51,3 +51,4 @@ jobs:
             SERVICE_NAME=${{ env.SERVICE_NAME }}
             OTP_VERSION=${{ env.OTP_VERSION }}
             THRIFT_VERSION=${{ env.THRIFT_VERSION }}
+            FETCH_TOKEN=${{ secrets.ACTIONS_FETCH_TOKEN }}

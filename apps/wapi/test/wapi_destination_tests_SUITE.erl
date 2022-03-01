@@ -19,6 +19,8 @@
 
 -export([init/1]).
 
+-export([create_extension_destination_ok_test/1]).
+-export([create_extension_destination_fail_unknown_resource_test/1]).
 -export([create_destination_ok_test/1]).
 -export([create_destination_fail_resource_token_invalid_test/1]).
 -export([create_destination_fail_resource_token_expire_test/1]).
@@ -61,6 +63,8 @@ all() ->
 groups() ->
     [
         {base, [], [
+            create_extension_destination_ok_test,
+            create_extension_destination_fail_unknown_resource_test,
             create_destination_ok_test,
             create_destination_fail_resource_token_invalid_test,
             create_destination_fail_resource_token_expire_test,
@@ -108,16 +112,66 @@ end_per_group(_Group, _C) ->
     ok.
 
 -spec init_per_testcase(test_case_name(), config()) -> config().
+init_per_testcase(Name = create_extension_destination_fail_unknown_resource_test, C) ->
+    meck:new(swag_server_wallet_schema, [no_link, passthrough]),
+    Raw = swag_server_wallet_schema:get(),
+    Definitions = maps:get(<<"definitions">>, Raw),
+    meck:expect(swag_server_wallet_schema, get, fun() ->
+        Raw#{
+            <<"definitions">> => Definitions#{
+                <<"BankTransferJPY">> => #{
+                    <<"allOf">> => [
+                        #{
+                            <<"$ref">> => <<"#/definitions/DestinationResource">>
+                        },
+                        #{
+                            <<"$ref">> => <<"#/definitions/BankAccountJPY">>
+                        }
+                    ]
+                }
+            }
+        }
+    end),
+    C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
+    [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1];
 init_per_testcase(Name, C) ->
     C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
     [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1].
 
 -spec end_per_testcase(test_case_name(), config()) -> ok.
+end_per_testcase(Name, C) when
+    Name =:= create_extension_destination_fail_unknown_resource_test
+->
+    meck:unload(swag_server_wallet_schema),
+    wapi_ct_helper:stop_mocked_service_sup(?config(test_sup, C)),
+    ok;
 end_per_testcase(_Name, C) ->
     wapi_ct_helper:stop_mocked_service_sup(?config(test_sup, C)),
     ok.
 
 %%% Tests
+
+-spec create_extension_destination_ok_test(config()) -> _.
+create_extension_destination_ok_test(C) ->
+    Destination = make_destination(C, generic),
+    _ = create_destination_start_mocks(C, {ok, Destination}),
+    ?assertMatch(
+        {ok, _},
+        create_destination_call_api(C, Destination)
+    ).
+
+-spec create_extension_destination_fail_unknown_resource_test(config()) -> _.
+create_extension_destination_fail_unknown_resource_test(C) ->
+    Destination = make_destination(C, generic),
+    _ = create_destination_start_mocks(C, {ok, Destination}),
+    ?assertMatch(
+        {error,
+            {400, #{
+                <<"errorType">> := <<"SchemaViolated">>,
+                <<"description">> := <<"Unknown resource">>
+            }}},
+        create_destination_call_api(C, Destination)
+    ).
 
 -spec create_destination_ok_test(config()) -> _.
 create_destination_ok_test(C) ->
@@ -397,6 +451,16 @@ build_resource_spec({digital_wallet, R}) ->
         <<"provider">> =>
             ((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.payment_service)#'PaymentServiceRef'.id
     };
+build_resource_spec({generic, _R}) ->
+    #{
+        <<"type">> => <<"BankTransferJPY">>,
+        <<"accountName">> => <<"accountName">>,
+        <<"accountNumber">> => <<"1233123">>,
+        <<"bank">> => #{
+            <<"name">> => <<"name">>,
+            <<"branchName">> => <<"branchName">>
+        }
+    };
 build_resource_spec(Token) ->
     #{
         <<"type">> => <<"BankCardDestinationResource">>,
@@ -465,6 +529,16 @@ generate_destination(IdentityID, Resource, Context) ->
         context = Context
     }.
 
+generate_resource(generic) ->
+    Data = jsx:encode(build_resource_spec({generic, resource})),
+    ID = <<"https://api.empayre.com/payment-methods/BankAccountJPY@v1">>,
+    Type = <<"application/schema-instance+json; schema=", ID/binary>>,
+    {generic, #'ResourceGeneric'{
+        generic = #'ResourceGenericData'{
+            data = #'Content'{type = Type, data = Data},
+            provider = #'PaymentServiceRef'{id = <<"BankTransferJPY">>}
+        }
+    }};
 generate_resource(bank_card) ->
     {bank_card, #'ResourceBankCard'{
         bank_card = #'BankCard'{

@@ -11,6 +11,10 @@ ARG THRIFT_VERSION
 RUN wget -q -O- "https://github.com/valitydev/thrift/releases/download/${THRIFT_VERSION}/thrift-${THRIFT_VERSION}-linux-${BUILDARCH}.tar.gz" \
     | tar -xvz -C /usr/local/bin/
 
+# Hack ssh fetch
+ARG FETCH_TOKEN
+RUN git config --global url."https://${FETCH_TOKEN}@github.com/".insteadOf ssh://git@github.com/
+
 # Copy sources
 RUN mkdir /build
 COPY . /build/
