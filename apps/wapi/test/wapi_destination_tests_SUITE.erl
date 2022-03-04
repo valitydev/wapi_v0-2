@@ -37,7 +37,7 @@
 -export([ethereum_resource_test/1]).
 -export([usdt_resource_test/1]).
 -export([zcash_resource_test/1]).
--export([webmoney_resource_test/1]).
+-export([digital_wallet_resource_test/1]).
 
 % common-api is used since it is the domain used in production RN
 % TODO: change to wallet-api (or just omit since it is the default one) when new tokens will be a thing
@@ -81,7 +81,7 @@ groups() ->
             ethereum_resource_test,
             usdt_resource_test,
             zcash_resource_test,
-            webmoney_resource_test
+            digital_wallet_resource_test
         ]}
     ].
 
@@ -101,14 +101,16 @@ end_per_suite(C) ->
 -spec init_per_group(group_name(), config()) -> config().
 init_per_group(Group, Config) when Group =:= base ->
     Party = genlib:bsuuid(),
-    {ok, Token} = wapi_ct_helper:issue_token(Party, [{[party], write}, {[party], read}], unlimited, ?DOMAIN),
     Config1 = [{party, Party} | Config],
-    [{context, wapi_ct_helper:get_context(Token)} | Config1];
+    GroupSup = wapi_ct_helper:start_mocked_service_sup(?MODULE),
+    _ = wapi_ct_helper_token_keeper:mock_user_session_token(Party, GroupSup),
+    [{group_test_sup, GroupSup}, {context, wapi_ct_helper:get_context(?API_TOKEN)} | Config1];
 init_per_group(_, Config) ->
     Config.
 
 -spec end_per_group(group_name(), config()) -> _.
-end_per_group(_Group, _C) ->
+end_per_group(_Group, C) ->
+    _ = wapi_ct_helper:stop_mocked_service_sup(?config(group_test_sup, C)),
     ok.
 
 -spec init_per_testcase(test_case_name(), config()) -> config().
@@ -330,11 +332,11 @@ zcash_resource_test(C) ->
     {crypto_wallet, #'ResourceCryptoWallet'{crypto_wallet = #'CryptoWallet'{id = ID}}} = Resource,
     ?assertEqual(ID, maps:get(<<"id">>, SwagResource)).
 
--spec webmoney_resource_test(config()) -> _.
-webmoney_resource_test(C) ->
-    {ok, Resource, SwagResource} = do_destination_lifecycle(webmoney, C),
+-spec digital_wallet_resource_test(config()) -> _.
+digital_wallet_resource_test(C) ->
+    {ok, Resource, SwagResource} = do_destination_lifecycle(digital_wallet, C),
     ?assertEqual(<<"DigitalWalletDestinationResource">>, maps:get(<<"type">>, SwagResource)),
-    ?assertEqual(<<"Webmoney">>, maps:get(<<"provider">>, SwagResource)),
+    ?assertEqual(<<"nomoney">>, maps:get(<<"provider">>, SwagResource)),
     {digital_wallet, #'ResourceDigitalWallet'{digital_wallet = #'DigitalWallet'{id = ID}}} = Resource,
     ?assertEqual(ID, maps:get(<<"id">>, SwagResource)).
 
@@ -573,11 +575,11 @@ generate_resource(ResourceType) when
             currency = Currency
         }
     }};
-generate_resource(ResourceType) when ResourceType =:= webmoney ->
+generate_resource(ResourceType) when ResourceType =:= digital_wallet ->
     {digital_wallet, #'ResourceDigitalWallet'{
         digital_wallet = #'DigitalWallet'{
             id = uniq(),
-            payment_service = #'PaymentServiceRef'{id = generate_digital_wallet_provider(ResourceType)}
+            payment_service = #'PaymentServiceRef'{id = generate_digital_wallet_provider()}
         }
     }}.
 
@@ -598,8 +600,8 @@ generate_crypto_wallet_data(usdt) ->
 generate_crypto_wallet_data(zcash) ->
     {zcash, #'CryptoDataZcash'{}}.
 
-generate_digital_wallet_provider(webmoney) ->
-    <<"Webmoney">>.
+generate_digital_wallet_provider() ->
+    <<"nomoney">>.
 
 make_destination(C, ResourceType) ->
     PartyID = ?config(party, C),
