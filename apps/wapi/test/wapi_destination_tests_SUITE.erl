@@ -114,26 +114,46 @@ end_per_group(_Group, C) ->
     ok.
 
 -spec init_per_testcase(test_case_name(), config()) -> config().
-init_per_testcase(Name = create_extension_destination_fail_unknown_resource_test, C) ->
-    meck:new(swag_server_wallet_schema, [no_link, passthrough]),
-    Raw = swag_server_wallet_schema:get(),
-    Definitions = maps:get(<<"definitions">>, Raw),
-    meck:expect(swag_server_wallet_schema, get, fun() ->
-        Raw#{
-            <<"definitions">> => Definitions#{
-                <<"BankTransferJPY">> => #{
-                    <<"allOf">> => [
-                        #{
-                            <<"$ref">> => <<"#/definitions/DestinationResource">>
-                        },
-                        #{
-                            <<"$ref">> => <<"#/definitions/BankAccountJPY">>
-                        }
-                    ]
+init_per_testcase(Name = create_extension_destination_ok_test, C) ->
+    ResourceDesc = #{
+        <<"allOf">> =>
+            [
+                #{
+                    <<"$ref">> => <<"#/definitions/DestinationResource">>
+                },
+                #{
+                    <<"$ref">> => <<"#/definitions/GenericBankAccount">>
                 }
+            ],
+        <<"x-vality-genericMethod">> =>
+            #{
+                <<"schema">> =>
+                    #{
+                        <<"id">> => <<"https://some.link">>,
+                        <<"allOf">> =>
+                            [
+                                #{
+                                    <<"$ref">> => <<"#/definitions/GenericBankAccount">>
+                                }
+                            ]
+                    }
             }
-        }
-    end),
+    },
+    mock_generic_schema(ResourceDesc),
+    C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
+    [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1];
+init_per_testcase(Name = create_extension_destination_fail_unknown_resource_test, C) ->
+    ResourceDesc = #{
+        <<"allOf">> => [
+            #{
+                <<"$ref">> => <<"#/definitions/DestinationResource">>
+            },
+            #{
+                <<"$ref">> => <<"#/definitions/GenericBankAccount">>
+            }
+        ]
+    },
+    mock_generic_schema(ResourceDesc),
     C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
     [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1];
 init_per_testcase(Name, C) ->
@@ -142,9 +162,11 @@ init_per_testcase(Name, C) ->
 
 -spec end_per_testcase(test_case_name(), config()) -> ok.
 end_per_testcase(Name, C) when
-    Name =:= create_extension_destination_fail_unknown_resource_test
+    Name =:= create_extension_destination_ok_test orelse
+        Name =:= create_extension_destination_fail_unknown_resource_test
 ->
     meck:unload(swag_server_wallet_schema),
+    meck:unload(swag_client_wallet_schema),
     wapi_ct_helper:stop_mocked_service_sup(?config(test_sup, C)),
     ok;
 end_per_testcase(_Name, C) ->
@@ -455,13 +477,8 @@ build_resource_spec({digital_wallet, R}) ->
     };
 build_resource_spec({generic, _R}) ->
     #{
-        <<"type">> => <<"BankTransferJPY">>,
-        <<"accountName">> => <<"accountName">>,
-        <<"accountNumber">> => <<"1233123">>,
-        <<"bank">> => #{
-            <<"name">> => <<"name">>,
-            <<"branchName">> => <<"branchName">>
-        }
+        <<"type">> => <<"BankTransferGeneric">>,
+        <<"accountNumber">> => <<"1233123">>
     };
 build_resource_spec(Token) ->
     #{
@@ -533,12 +550,12 @@ generate_destination(IdentityID, Resource, Context) ->
 
 generate_resource(generic) ->
     Data = jsx:encode(build_resource_spec({generic, resource})),
-    ID = <<"https://api.empayre.com/payment-methods/BankAccountJPY@v1">>,
+    ID = <<"https://some.link">>,
     Type = <<"application/schema-instance+json; schema=", ID/binary>>,
     {generic, #'ResourceGeneric'{
         generic = #'ResourceGenericData'{
             data = #'Content'{type = Type, data = Data},
-            provider = #'PaymentServiceRef'{id = <<"BankTransferJPY">>}
+            provider = #'PaymentServiceRef'{id = <<"BankTransferGeneric">>}
         }
     }};
 generate_resource(bank_card) ->
@@ -660,3 +677,41 @@ get_destination_call_api(C) ->
         },
         wapi_ct_helper:cfg(context, C)
     ).
+
+mock_generic_schema(ResourceDesc) ->
+    meck:new(swag_server_wallet_schema, [no_link, passthrough]),
+    meck:new(swag_client_wallet_schema, [no_link, passthrough]),
+    Raw = swag_server_wallet_schema:get(),
+    Definitions = maps:get(<<"definitions">>, Raw),
+    Get = fun() ->
+        Raw#{
+            <<"definitions">> => Definitions#{
+                <<"BankTransferGeneric">> => ResourceDesc,
+                <<"GenericBankAccount">> => #{
+                    <<"type">> => <<"object">>,
+                    <<"required">> => [<<"accountNumber">>],
+                    <<"properties">> => #{
+                        <<"accountNumber">> => #{
+                            <<"type">> => <<"string">>,
+                            <<"example">> => <<"0071717">>,
+                            <<"pattern">> => <<"^\\d{7,8}$">>
+                        }
+                    }
+                },
+                <<"DestinationResource">> => #{
+                    <<"type">> => <<"object">>,
+                    <<"required">> => [<<"type">>],
+                    <<"discriminator">> => <<"type">>,
+                    <<"properties">> => #{
+                        <<"type">> => #{
+                            <<"type">> => <<"string">>,
+                            <<"enum">> => [<<"BankTransferGeneric">>]
+                        }
+                    },
+                    <<"x-discriminator-is-enum">> => true
+                }
+            }
+        }
+    end,
+    meck:expect(swag_server_wallet_schema, get, Get),
+    meck:expect(swag_client_wallet_schema, get, Get).
