@@ -42,6 +42,8 @@
 % common-api is used since it is the domain used in production RN
 % TODO: change to wallet-api (or just omit since it is the default one) when new tokens will be a thing
 -define(DOMAIN, <<"common-api">>).
+-define(GENERIC_RESOURCE_TYPE, <<"BankTransferGeneric">>).
+-define(GENERIC_RESOURCE_NAME, <<"GenericBankAccount">>).
 
 -type test_case_name() :: atom().
 -type config() :: [{atom(), any()}].
@@ -115,14 +117,15 @@ end_per_group(_Group, C) ->
 
 -spec init_per_testcase(test_case_name(), config()) -> config().
 init_per_testcase(Name = create_extension_destination_ok_test, C) ->
-    ResourceDesc = #{
+    Ref = <<"#/definitions/", ?GENERIC_RESOURCE_NAME/binary>>,
+    ResourceSchema = #{
         <<"allOf">> =>
             [
                 #{
                     <<"$ref">> => <<"#/definitions/DestinationResource">>
                 },
                 #{
-                    <<"$ref">> => <<"#/definitions/GenericBankAccount">>
+                    <<"$ref">> => Ref
                 }
             ],
         <<"x-vality-genericMethod">> =>
@@ -133,27 +136,28 @@ init_per_testcase(Name = create_extension_destination_ok_test, C) ->
                         <<"allOf">> =>
                             [
                                 #{
-                                    <<"$ref">> => <<"#/definitions/GenericBankAccount">>
+                                    <<"$ref">> => Ref
                                 }
                             ]
                     }
             }
     },
-    mock_generic_schema(ResourceDesc),
+    mock_generic_schema(ResourceSchema),
     C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
     [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1];
 init_per_testcase(Name = create_extension_destination_fail_unknown_resource_test, C) ->
-    ResourceDesc = #{
+    Ref = <<"#/definitions/", ?GENERIC_RESOURCE_NAME/binary>>,
+    ResourceSchema = #{
         <<"allOf">> => [
             #{
                 <<"$ref">> => <<"#/definitions/DestinationResource">>
             },
             #{
-                <<"$ref">> => <<"#/definitions/GenericBankAccount">>
+                <<"$ref">> => Ref
             }
         ]
     },
-    mock_generic_schema(ResourceDesc),
+    mock_generic_schema(ResourceSchema),
     C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
     [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1];
 init_per_testcase(Name, C) ->
@@ -477,7 +481,7 @@ build_resource_spec({digital_wallet, R}) ->
     };
 build_resource_spec({generic, _R}) ->
     #{
-        <<"type">> => <<"BankTransferGeneric">>,
+        <<"type">> => ?GENERIC_RESOURCE_TYPE,
         <<"accountNumber">> => <<"1233123">>
     };
 build_resource_spec(Token) ->
@@ -555,7 +559,7 @@ generate_resource(generic) ->
     {generic, #'ResourceGeneric'{
         generic = #'ResourceGenericData'{
             data = #'Content'{type = Type, data = Data},
-            provider = #'PaymentServiceRef'{id = <<"BankTransferGeneric">>}
+            provider = #'PaymentServiceRef'{id = ?GENERIC_RESOURCE_TYPE}
         }
     }};
 generate_resource(bank_card) ->
@@ -678,7 +682,7 @@ get_destination_call_api(C) ->
         wapi_ct_helper:cfg(context, C)
     ).
 
-mock_generic_schema(ResourceDesc) ->
+mock_generic_schema(ResourceSchema) ->
     meck:new(swag_server_wallet_schema, [no_link, passthrough]),
     meck:new(swag_client_wallet_schema, [no_link, passthrough]),
     Raw = swag_server_wallet_schema:get(),
@@ -686,8 +690,8 @@ mock_generic_schema(ResourceDesc) ->
     Get = fun() ->
         Raw#{
             <<"definitions">> => Definitions#{
-                <<"BankTransferGeneric">> => ResourceDesc,
-                <<"GenericBankAccount">> => #{
+                ?GENERIC_RESOURCE_TYPE => ResourceSchema,
+                ?GENERIC_RESOURCE_NAME => #{
                     <<"type">> => <<"object">>,
                     <<"required">> => [<<"accountNumber">>],
                     <<"properties">> => #{
@@ -705,10 +709,9 @@ mock_generic_schema(ResourceDesc) ->
                     <<"properties">> => #{
                         <<"type">> => #{
                             <<"type">> => <<"string">>,
-                            <<"enum">> => [<<"BankTransferGeneric">>]
+                            <<"enum">> => [?GENERIC_RESOURCE_TYPE]
                         }
-                    },
-                    <<"x-discriminator-is-enum">> => true
+                    }
                 }
             }
         }
