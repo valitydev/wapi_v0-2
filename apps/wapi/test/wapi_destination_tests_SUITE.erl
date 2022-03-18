@@ -118,7 +118,7 @@ end_per_group(_Group, C) ->
 -spec init_per_testcase(test_case_name(), config()) -> config().
 init_per_testcase(Name, C) when
     Name =:= create_extension_destination_ok_test orelse
-    Name =:= create_extension_destination_fail_unknown_resource_test
+        Name =:= create_extension_destination_fail_unknown_resource_test
 ->
     meck:new(swag_server_wallet_schema, [no_link, passthrough]),
     meck:new(swag_client_wallet_schema, [no_link, passthrough]),
