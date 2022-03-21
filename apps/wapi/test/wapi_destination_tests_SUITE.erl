@@ -485,11 +485,9 @@ build_resource_spec({digital_wallet, R}) ->
         <<"provider">> =>
             ((R#'ResourceDigitalWallet'.digital_wallet)#'DigitalWallet'.payment_service)#'PaymentServiceRef'.id
     };
-build_resource_spec({generic, _R}) ->
-    #{
-        <<"type">> => ?GENERIC_RESOURCE_TYPE,
-        <<"accountNumber">> => <<"1233123">>
-    };
+build_resource_spec({generic, #'ResourceGeneric'{generic = #'ResourceGenericData'{data = Data}}}) ->
+    #'Content'{data = Params} = Data,
+    jsx:decode(Params);
 build_resource_spec(Token) ->
     #{
         <<"type">> => <<"BankCardDestinationResource">>,
@@ -559,7 +557,10 @@ generate_destination(IdentityID, Resource, Context) ->
     }.
 
 generate_resource(generic) ->
-    Data = jsx:encode(build_resource_spec({generic, resource})),
+    Data = jsx:encode(#{
+        <<"type">> => ?GENERIC_RESOURCE_TYPE,
+        <<"accountNumber">> => <<"1233123">>
+    }),
     ID = <<"https://some.link">>,
     Type = <<"application/schema-instance+json; schema=", ID/binary>>,
     {generic, #'ResourceGeneric'{
