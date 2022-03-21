@@ -122,11 +122,9 @@ init_per_testcase(Name, C) when
 ->
     meck:new(swag_server_wallet_schema, [no_link, passthrough]),
     meck:new(swag_client_wallet_schema, [no_link, passthrough]),
-    C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
-    [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1];
+    makeup_and_start_mock_per_testcase(Name, C);
 init_per_testcase(Name, C) ->
-    C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
-    [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1].
+    makeup_and_start_mock_per_testcase(Name, C).
 
 -spec end_per_testcase(test_case_name(), config()) -> ok.
 end_per_testcase(Name, C) when
@@ -135,9 +133,15 @@ end_per_testcase(Name, C) when
 ->
     meck:unload(swag_server_wallet_schema),
     meck:unload(swag_client_wallet_schema),
-    wapi_ct_helper:stop_mocked_service_sup(?config(test_sup, C)),
-    ok;
+    end_mock_per_testcase(C);
 end_per_testcase(_Name, C) ->
+    end_mock_per_testcase(C).
+
+makeup_and_start_mock_per_testcase(Name, C) ->
+    C1 = wapi_ct_helper:makeup_cfg([wapi_ct_helper:test_case_name(Name), wapi_ct_helper:woody_ctx()], C),
+    [{test_sup, wapi_ct_helper:start_mocked_service_sup(?MODULE)} | C1].
+
+end_mock_per_testcase(C) ->
     wapi_ct_helper:stop_mocked_service_sup(?config(test_sup, C)),
     ok.
 
