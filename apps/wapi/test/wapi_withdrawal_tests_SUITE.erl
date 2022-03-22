@@ -26,6 +26,7 @@
     create_fail_wallet_notfound/1,
     create_fail_destination_notfound/1,
     create_fail_destination_unauthorized/1,
+    create_fail_destination_withdrawal_method/1,
     create_fail_forbidden_operation_currency/1,
     create_fail_forbidden_operation_amount/1,
     create_fail_invalid_operation_amount/1,
@@ -40,6 +41,7 @@
     get_quote_fail_wallet_notfound/1,
     get_quote_fail_destination_notfound/1,
     get_quote_fail_destination_unauthorized/1,
+    get_quote_fail_destination_withdrawal_method/1,
     get_quote_fail_forbidden_operation_currency/1,
     get_quote_fail_forbidden_operation_amount/1,
     get_quote_fail_invalid_operation_amount/1,
@@ -78,6 +80,7 @@ groups() ->
             create_fail_wallet_notfound,
             create_fail_destination_notfound,
             create_fail_destination_unauthorized,
+            create_fail_destination_withdrawal_method,
             create_fail_forbidden_operation_currency,
             create_fail_forbidden_operation_amount,
             create_fail_invalid_operation_amount,
@@ -92,6 +95,7 @@ groups() ->
             get_quote_fail_wallet_notfound,
             get_quote_fail_destination_notfound,
             get_quote_fail_destination_unauthorized,
+            get_quote_fail_destination_withdrawal_method,
             get_quote_fail_forbidden_operation_currency,
             get_quote_fail_forbidden_operation_amount,
             get_quote_fail_invalid_operation_amount,
@@ -170,6 +174,14 @@ create_fail_destination_unauthorized(C) ->
     _ = create_withdrawal_start_mocks(C, fun() -> {throwing, #fistful_DestinationUnauthorized{}} end),
     ?assertEqual(
         {error, {422, #{<<"message">> => <<"Destination unauthorized">>}}},
+        create_withdrawal_call_api(C)
+    ).
+
+-spec create_fail_destination_withdrawal_method(config()) -> _.
+create_fail_destination_withdrawal_method(C) ->
+    _ = create_withdrawal_start_mocks(C, fun() -> {throwing, #fistful_ForbiddenWithdrawalMethod{}} end),
+    ?assertEqual(
+        {error, {422, #{<<"message">> => <<"Forbidden destination">>}}},
         create_withdrawal_call_api(C)
     ).
 
@@ -361,6 +373,14 @@ get_quote_fail_destination_unauthorized(C) ->
     _ = get_quote_start_mocks(C, fun() -> {throwing, #fistful_DestinationUnauthorized{}} end),
     ?assertEqual(
         {error, {422, #{<<"message">> => <<"Destination unauthorized">>}}},
+        create_qoute_call_api(C)
+    ).
+
+-spec get_quote_fail_destination_withdrawal_method(config()) -> _.
+get_quote_fail_destination_withdrawal_method(C) ->
+    _ = get_quote_start_mocks(C, fun() -> {throwing, #fistful_ForbiddenWithdrawalMethod{}} end),
+    ?assertEqual(
+        {error, {422, #{<<"message">> => <<"Forbidden destination">>}}},
         create_qoute_call_api(C)
     ).
 

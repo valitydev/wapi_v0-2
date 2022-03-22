@@ -474,6 +474,8 @@ prepare(
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Currency not supported">>));
             {error, inaccessible} ->
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Identity inaccessible">>));
+            {error, withdrawal_method} ->
+                wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Forbidden resource type">>));
             {error, {external_id_conflict, {ID, ExternalID}}} ->
                 wapi_handler_utils:logic_error(external_id_conflict, {ID, ExternalID});
             {error, {invalid_resource_token, Type}} ->
@@ -552,6 +554,8 @@ prepare(OperationID = 'CreateQuote', Req = #{'WithdrawalQuoteParams' := Params},
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"No such destination">>));
             {error, {destination, unauthorized}} ->
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Destination unauthorized">>));
+            {error, {destination, withdrawal_method}} ->
+                wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Forbidden destination">>));
             {error, {wallet, notfound}} ->
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"No such wallet">>));
             {error, {forbidden_currency, _}} ->
@@ -614,6 +618,8 @@ prepare(OperationID = 'CreateWithdrawal', #{'WithdrawalParameters' := Params}, C
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"No such destination">>));
             {error, {destination, unauthorized}} ->
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Destination unauthorized">>));
+            {error, {destination, withdrawal_method}} ->
+                wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Forbidden destination">>));
             {error, {external_id_conflict, ID}} ->
                 ExternalID = maps:get(<<"externalID">>, Params, undefined),
                 wapi_handler_utils:logic_error(external_id_conflict, {ID, ExternalID});

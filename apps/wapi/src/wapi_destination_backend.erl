@@ -23,6 +23,7 @@
         | {identity, notfound}
         | {currency, notfound}
         | inaccessible
+        | withdrawal_method
         | {external_id_conflict, {id(), external_id()}}.
 create(Params, HandlerContext) ->
     do(fun() ->
@@ -76,6 +77,8 @@ create_request(ID, Params, ResourceThrift, HandlerContext) ->
             {error, {currency, notfound}};
         {exception, #fistful_PartyInaccessible{}} ->
             {error, inaccessible};
+        {exception, #fistful_ForbiddenWithdrawalMethod{}} ->
+            {error, withdrawal_method};
         {exception, Details} ->
             {error, Details}
     end.

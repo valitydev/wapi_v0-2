@@ -27,6 +27,7 @@
 -export([create_destination_fail_identity_notfound_test/1]).
 -export([create_destination_fail_currency_notfound_test/1]).
 -export([create_destination_fail_party_inaccessible_test/1]).
+-export([create_destination_fail_withdrawal_method_test/1]).
 -export([get_destination_ok_test/1]).
 -export([get_destination_fail_notfound_test/1]).
 -export([bank_card_resource_test/1]).
@@ -73,6 +74,7 @@ groups() ->
             create_destination_fail_identity_notfound_test,
             create_destination_fail_currency_notfound_test,
             create_destination_fail_party_inaccessible_test,
+            create_destination_fail_withdrawal_method_test,
             get_destination_ok_test,
             get_destination_fail_notfound_test,
             bank_card_resource_test,
@@ -267,6 +269,15 @@ create_destination_fail_party_inaccessible_test(C) ->
     _ = create_destination_start_mocks(C, {throwing, #fistful_PartyInaccessible{}}),
     ?assertEqual(
         {error, {422, #{<<"message">> => <<"Identity inaccessible">>}}},
+        create_destination_call_api(C, Destination)
+    ).
+
+-spec create_destination_fail_withdrawal_method_test(config()) -> _.
+create_destination_fail_withdrawal_method_test(C) ->
+    Destination = make_destination(C, bank_card),
+    _ = create_destination_start_mocks(C, {throwing, #fistful_ForbiddenWithdrawalMethod{}}),
+    ?assertEqual(
+        {error, {422, #{<<"message">> => <<"Forbidden resource type">>}}},
         create_destination_call_api(C, Destination)
     ).
 
