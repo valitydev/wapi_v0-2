@@ -14,6 +14,7 @@
 -export([get_identities/2]).
 
 -export([get_thrift_identity/2]).
+-export([get_identity_withdrawal_methods/2]).
 
 -include_lib("fistful_proto/include/ff_proto_identity_thrift.hrl").
 -include_lib("fistful_proto/include/ff_proto_base_thrift.hrl").
@@ -76,10 +77,22 @@ get_identities(_Params, _Context) ->
     {ok, identity_state()}
     | {error, {identity, notfound}}.
 get_thrift_identity(IdentityID, HandlerContext) ->
-    Request = {fistful_identity, 'Get', {IdentityID, #'EventRange'{}}},
+    Request = {fistful_identity, 'Get', {IdentityID, #'fistful_base_EventRange'{}}},
     case service_call(Request, HandlerContext) of
         {ok, IdentityThrift} ->
             {ok, IdentityThrift};
+        {exception, #fistful_IdentityNotFound{}} ->
+            {error, {identity, notfound}}
+    end.
+
+-spec get_identity_withdrawal_methods(id(), handler_context()) ->
+    {ok, response_data()}
+    | {error, {identity, notfound}}.
+get_identity_withdrawal_methods(IdentityID, HandlerContext) ->
+    Request = {fistful_identity, 'GetWithdrawalMethods', {IdentityID}},
+    case service_call(Request, HandlerContext) of
+        {ok, Methods} ->
+            {ok, unmarshal_withdrawal_methods(Methods)};
         {exception, #fistful_IdentityNotFound{}} ->
             {error, {identity, notfound}}
     end.
@@ -129,6 +142,46 @@ marshal(T, V) ->
     wapi_codec:marshal(T, V).
 
 %%
+
+unmarshal_withdrawal_methods(Methods) ->
+    MethodMap = lists:foldl(fun unmarshal_withdrawal_method/2, #{}, ordsets:to_list(Methods)),
+    #{
+        <<"methods">> => [
+            #{
+                <<"method">> => <<"WithdrawalMethodBankCard">>,
+                <<"paymentSystems">> => maps:get(bank_card, MethodMap, [])
+            },
+            #{
+                <<"method">> => <<"WithdrawalMethodDigitalWallet">>,
+                <<"providers">> => maps:get(digital_wallet, MethodMap, [])
+            },
+            #{
+                <<"method">> => <<"WithdrawalMethodGeneric">>,
+                <<"providers">> => maps:get(generic, MethodMap, [])
+            }
+        ]
+    }.
+
+unmarshal_withdrawal_method({bank_card, #'fistful_BankCardWithdrawalMethod'{payment_system = PaymentSystem}}, Acc0) ->
+    Methods = maps:get(bank_card, Acc0, []),
+    case maybe_unmarshal(payment_system, PaymentSystem) of
+        #{id := ID} ->
+            Acc0#{bank_card => [ID | Methods]};
+        undefined ->
+            Acc0
+    end;
+unmarshal_withdrawal_method({digital_wallet, PaymentServiceRef}, Acc0) ->
+    Methods = maps:get(digital_wallet, Acc0, []),
+    #{id := ID} = unmarshal(payment_service, PaymentServiceRef),
+    Acc0#{digital_wallet => [ID | Methods]};
+unmarshal_withdrawal_method({generic, PaymentServiceRef}, Acc0) ->
+    Methods = maps:get(generic, Acc0, []),
+    #{id := ID} = unmarshal(payment_service, PaymentServiceRef),
+    Acc0#{generic => [ID | Methods]};
+unmarshal_withdrawal_method({crypto_currency, CryptoCurrencyRef}, Acc0) ->
+    Methods = maps:get(crypto_currency, Acc0, []),
+    #{id := ID} = unmarshal(crypto_currency, CryptoCurrencyRef),
+    Acc0#{crypto_currency => [ID | Methods]}.
 
 unmarshal(identity, #idnt_IdentityState{
     id = IdentityID,

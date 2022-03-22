@@ -176,9 +176,9 @@ create_fail_destination_unauthorized(C) ->
 -spec create_fail_forbidden_operation_currency(config()) -> _.
 create_fail_forbidden_operation_currency(C) ->
     ForbiddenOperationCurrencyException = #fistful_ForbiddenOperationCurrency{
-        currency = #'CurrencyRef'{symbolic_code = ?USD},
+        currency = #'fistful_base_CurrencyRef'{symbolic_code = ?USD},
         allowed_currencies = [
-            #'CurrencyRef'{symbolic_code = ?RUB}
+            #'fistful_base_CurrencyRef'{symbolic_code = ?RUB}
         ]
     },
     _ = create_withdrawal_start_mocks(C, fun() -> {throwing, ForbiddenOperationCurrencyException} end),
@@ -191,7 +191,7 @@ create_fail_forbidden_operation_currency(C) ->
 create_fail_forbidden_operation_amount(C) ->
     ForbiddenOperationAmountException = #fistful_ForbiddenOperationAmount{
         amount = ?CASH,
-        allowed_range = #'CashRange'{
+        allowed_range = #'fistful_base_CashRange'{
             upper = {inclusive, ?CASH},
             lower = {inclusive, ?CASH}
         }
@@ -216,13 +216,13 @@ create_fail_invalid_operation_amount(C) ->
 -spec create_fail_inconsistent_withdrawal_currency(config()) -> _.
 create_fail_inconsistent_withdrawal_currency(C) ->
     InconsistentWithdrawalCurrencyException = #wthd_InconsistentWithdrawalCurrency{
-        withdrawal_currency = #'CurrencyRef'{
+        withdrawal_currency = #'fistful_base_CurrencyRef'{
             symbolic_code = ?USD
         },
-        destination_currency = #'CurrencyRef'{
+        destination_currency = #'fistful_base_CurrencyRef'{
             symbolic_code = ?RUB
         },
-        wallet_currency = #'CurrencyRef'{
+        wallet_currency = #'fistful_base_CurrencyRef'{
             symbolic_code = ?RUB
         }
     },
@@ -367,9 +367,9 @@ get_quote_fail_destination_unauthorized(C) ->
 -spec get_quote_fail_forbidden_operation_currency(config()) -> _.
 get_quote_fail_forbidden_operation_currency(C) ->
     ForbiddenOperationCurrencyException = #fistful_ForbiddenOperationCurrency{
-        currency = #'CurrencyRef'{symbolic_code = ?USD},
+        currency = #'fistful_base_CurrencyRef'{symbolic_code = ?USD},
         allowed_currencies = [
-            #'CurrencyRef'{symbolic_code = ?RUB}
+            #'fistful_base_CurrencyRef'{symbolic_code = ?RUB}
         ]
     },
     _ = get_quote_start_mocks(C, fun() -> {throwing, ForbiddenOperationCurrencyException} end),
@@ -382,7 +382,7 @@ get_quote_fail_forbidden_operation_currency(C) ->
 get_quote_fail_forbidden_operation_amount(C) ->
     ForbiddenOperationAmountException = #fistful_ForbiddenOperationAmount{
         amount = ?CASH,
-        allowed_range = #'CashRange'{
+        allowed_range = #'fistful_base_CashRange'{
             upper = {inclusive, ?CASH},
             lower = {inclusive, ?CASH}
         }
@@ -407,13 +407,13 @@ get_quote_fail_invalid_operation_amount(C) ->
 -spec get_quote_fail_inconsistent_withdrawal_currency(config()) -> _.
 get_quote_fail_inconsistent_withdrawal_currency(C) ->
     InconsistentWithdrawalCurrencyException = #wthd_InconsistentWithdrawalCurrency{
-        withdrawal_currency = #'CurrencyRef'{
+        withdrawal_currency = #'fistful_base_CurrencyRef'{
             symbolic_code = ?USD
         },
-        destination_currency = #'CurrencyRef'{
+        destination_currency = #'fistful_base_CurrencyRef'{
             symbolic_code = ?RUB
         },
-        wallet_currency = #'CurrencyRef'{
+        wallet_currency = #'fistful_base_CurrencyRef'{
             symbolic_code = ?RUB
         }
     },
@@ -564,7 +564,7 @@ get_events_start_mocks(Op, C, GetEventRangeResultFun) ->
             {fistful_withdrawal, fun
                 ('Get', _) -> {ok, ?WITHDRAWAL(PartyID)};
                 ('GetContext', _) -> {ok, ?DEFAULT_CONTEXT(PartyID)};
-                ('GetEvents', {_, #'EventRange'{limit = 0}}) -> GetEventRangeResultFun();
+                ('GetEvents', {_, #'fistful_base_EventRange'{limit = 0}}) -> GetEventRangeResultFun();
                 ('GetEvents', _) -> {ok, [?WITHDRAWAL_EVENT(?WITHDRAWAL_STATUS_CHANGE)]}
             end}
         ],

@@ -138,6 +138,29 @@ prepare(OperationID = 'ListIdentities', Req, Context, _Opts) ->
         end
     end,
     {ok, #{authorize => Authorize, process => Process}};
+prepare(OperationID = 'GetWithdrawalMethods', #{'identityID' := IdentityId}, Context, _Opts) ->
+    {ResultIdentity, ResultOwner} =
+        case wapi_identity_backend:get_identity(IdentityId, Context) of
+            {ok, Identity, Owner} -> {Identity, Owner};
+            {error, {identity, notfound}} -> {undefined, undefined}
+        end,
+    Authorize = fun() ->
+        Prototypes = [
+            {operation, #{identity => IdentityId, id => OperationID}},
+            {wallet, [wapi_bouncer_context:build_wallet_entity(identity, ResultIdentity, {party, ResultOwner})]}
+        ],
+        Resolution = mask_notfound(wapi_auth:authorize_operation(Prototypes, Context)),
+        {ok, Resolution}
+    end,
+    Process = fun() ->
+        case wapi_identity_backend:get_identity_withdrawal_methods(IdentityId, Context) of
+            {ok, WithdrawalMethods} ->
+                wapi_handler_utils:reply_ok(200, WithdrawalMethods);
+            {error, {identity, notfound}} ->
+                wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"No such identity">>))
+        end
+    end,
+    {ok, #{authorize => Authorize, process => Process}};
 prepare(OperationID = 'GetIdentity', #{'identityID' := IdentityId}, Context, _Opts) ->
     {ResultIdentity, ResultOwner} =
         case wapi_identity_backend:get_identity(IdentityId, Context) of
