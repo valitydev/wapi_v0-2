@@ -28,7 +28,7 @@ get_identity(IdentityID, HandlerContext) ->
     case get_thrift_identity(IdentityID, HandlerContext) of
         {ok, IdentityThrift} ->
             {ok, Owner} = wapi_backend_utils:get_entity_owner(identity, IdentityThrift),
-            {ok, unmarshal(identity, IdentityThrift), Owner};
+            {ok, unmarshal_identity(IdentityThrift), Owner};
         {error, _} = Error ->
             Error
     end.
@@ -58,7 +58,7 @@ create_identity(ID, Params, HandlerContext) ->
 
     case service_call(Request, HandlerContext) of
         {ok, Identity} ->
-            {ok, unmarshal(identity, Identity)};
+            {ok, unmarshal_identity(Identity)};
         {exception, #fistful_PartyNotFound{}} ->
             {error, {party, notfound}};
         {exception, #fistful_ProviderNotFound{}} ->
@@ -144,7 +144,7 @@ marshal(T, V) ->
 %%
 
 unmarshal_withdrawal_methods(Methods) ->
-    MethodMap = lists:foldl(fun unmarshal_withdrawal_method/2, #{}, ordsets:to_list(Methods)),
+    MethodMap = ordsets:fold(fun unmarshal_withdrawal_method/2, #{}, Methods),
     #{
         <<"methods">> => [
             #{
@@ -159,17 +159,14 @@ unmarshal_withdrawal_methods(Methods) ->
                 <<"method">> => <<"WithdrawalMethodGeneric">>,
                 <<"providers">> => maps:get(generic, MethodMap, [])
             }
+            %% TODO: Need to add method type for crypto currency TD-250
         ]
     }.
 
 unmarshal_withdrawal_method({bank_card, #'fistful_BankCardWithdrawalMethod'{payment_system = PaymentSystem}}, Acc0) ->
     Methods = maps:get(bank_card, Acc0, []),
-    case maybe_unmarshal(payment_system, PaymentSystem) of
-        #{id := ID} ->
-            Acc0#{bank_card => [ID | Methods]};
-        undefined ->
-            Acc0
-    end;
+    #{id := ID} = unmarshal(payment_system, PaymentSystem),
+    Acc0#{bank_card => [ID | Methods]};
 unmarshal_withdrawal_method({digital_wallet, PaymentServiceRef}, Acc0) ->
     Methods = maps:get(digital_wallet, Acc0, []),
     #{id := ID} = unmarshal(payment_service, PaymentServiceRef),
@@ -183,7 +180,7 @@ unmarshal_withdrawal_method({crypto_currency, CryptoCurrencyRef}, Acc0) ->
     #{id := ID} = unmarshal(crypto_currency, CryptoCurrencyRef),
     Acc0#{crypto_currency => [ID | Methods]}.
 
-unmarshal(identity, #idnt_IdentityState{
+unmarshal_identity(#idnt_IdentityState{
     id = IdentityID,
     name = Name,
     blocking = Blocking,
@@ -197,15 +194,19 @@ unmarshal(identity, #idnt_IdentityState{
         <<"id">> => unmarshal(id, IdentityID),
         <<"name">> => unmarshal(string, Name),
         <<"createdAt">> => maybe_unmarshal(string, CreatedAt),
-        <<"isBlocked">> => maybe_unmarshal(blocking, Blocking),
+        <<"isBlocked">> => unmarshal_blocking(Blocking),
         <<"provider">> => unmarshal(id, Provider),
         <<"externalID">> => maybe_unmarshal(id, ExternalID),
         <<"metadata">> => wapi_backend_utils:get_from_ctx(<<"metadata">>, Context)
-    });
-unmarshal(blocking, unblocked) ->
+    }).
+
+unmarshal_blocking(undefined) ->
+    undefined;
+unmarshal_blocking(unblocked) ->
     false;
-unmarshal(blocking, blocked) ->
-    true;
+unmarshal_blocking(blocked) ->
+    true.
+
 unmarshal(T, V) ->
     wapi_codec:unmarshal(T, V).
 

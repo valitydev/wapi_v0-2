@@ -16,7 +16,7 @@
 -type external_id() :: binary().
 
 -type create_error() ::
-    {destination, notfound | unauthorized | withdrawal_method}
+    {destination, notfound | unauthorized | forbidden_withdrawal_method}
     | {wallet, notfound}
     | {external_id_conflict, id()}
     | {quote_invalid_party, _}
@@ -32,7 +32,7 @@
     | {destination_resource, {bin_data, not_found}}.
 
 -type create_quote_error() ::
-    {destination, notfound | unauthorized | withdrawal_method}
+    {destination, notfound | unauthorized | forbidden_withdrawal_method}
     | {wallet, notfound}
     | {forbidden_currency, _}
     | {forbidden_amount, _}
@@ -104,7 +104,7 @@ create(Params, Context, HandlerContext) ->
         {exception, #fistful_WalletInaccessible{id = WalletID}} ->
             {error, {wallet, {inaccessible, WalletID}}};
         {exception, #fistful_ForbiddenWithdrawalMethod{}} ->
-            {error, {destination, withdrawal_method}}
+            {error, {destination, forbidden_withdrawal_method}}
     end.
 
 -spec get(id(), handler_context()) ->
@@ -179,7 +179,7 @@ create_quote(#{'WithdrawalQuoteParams' := Params}, HandlerContext) ->
         {exception, #wthd_NoDestinationResourceInfo{}} ->
             {error, {destination_resource, {bin_data, not_found}}};
         {exception, #fistful_ForbiddenWithdrawalMethod{}} ->
-            {error, {destination, withdrawal_method}}
+            {error, {destination, forbidden_withdrawal_method}}
     end.
 
 -spec get_events(req_data(), handler_context()) ->

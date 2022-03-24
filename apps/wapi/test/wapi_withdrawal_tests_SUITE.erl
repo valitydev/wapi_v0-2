@@ -181,7 +181,7 @@ create_fail_destination_unauthorized(C) ->
 create_fail_destination_withdrawal_method(C) ->
     _ = create_withdrawal_start_mocks(C, fun() -> {throwing, #fistful_ForbiddenWithdrawalMethod{}} end),
     ?assertEqual(
-        {error, {422, #{<<"message">> => <<"Forbidden destination">>}}},
+        {error, {422, #{<<"message">> => <<"Destination uses resource no longer allowed">>}}},
         create_withdrawal_call_api(C)
     ).
 
@@ -380,7 +380,7 @@ get_quote_fail_destination_unauthorized(C) ->
 get_quote_fail_destination_withdrawal_method(C) ->
     _ = get_quote_start_mocks(C, fun() -> {throwing, #fistful_ForbiddenWithdrawalMethod{}} end),
     ?assertEqual(
-        {error, {422, #{<<"message">> => <<"Forbidden destination">>}}},
+        {error, {422, #{<<"message">> => <<"Destination uses resource no longer allowed">>}}},
         create_qoute_call_api(C)
     ).
 
