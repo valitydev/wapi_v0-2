@@ -476,7 +476,7 @@ prepare(
                 wapi_handler_utils:reply_ok(422, wapi_handler_utils:get_error_msg(<<"Identity inaccessible">>));
             {error, forbidden_withdrawal_method} ->
                 wapi_handler_utils:reply_ok(
-                    422, wapi_handler_utils:get_error_msg(<<"Resource type no longer allowed">>)
+                    422, wapi_handler_utils:get_error_msg(<<"Resource type not allowed">>)
                 );
             {error, {external_id_conflict, {ID, ExternalID}}} ->
                 wapi_handler_utils:logic_error(external_id_conflict, {ID, ExternalID});
