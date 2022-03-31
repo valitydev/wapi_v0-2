@@ -152,8 +152,11 @@
     payment_service = #'PaymentServiceRef'{id = <<"nomoney">>}
 }).
 
--define(RESOURCE, {bank_card, ?BANK_CARD}).
--define(RESOURCE_DIGITAL_WALLET, {digital_wallet, ?DIGITAL_WALLET}).
+-define(RESOURCE_DIGITAL_WALLET,
+    {digital_wallet, #'ResourceDigitalWallet'{
+        digital_wallet = ?DIGITAL_WALLET
+    }}
+).
 
 -define(BIN(CardNumber), string:slice(CardNumber, 0, 6)).
 
@@ -161,12 +164,14 @@
 
 -define(DESTINATION_STATUS, {authorized, #dst_Authorized{}}).
 
--define(DESTINATION(PartyID), #dst_DestinationState{
+-define(DESTINATION(PartyID), ?DESTINATION(PartyID, ?RESOURCE_BANK_CARD)).
+
+-define(DESTINATION(PartyID, Resource), #dst_DestinationState{
     id = ?STRING,
     name = ?STRING,
     status = ?DESTINATION_STATUS,
     account = ?ACCOUNT,
-    resource = ?RESOURCE_BANK_CARD,
+    resource = Resource,
     external_id = ?STRING,
     created_at = ?TIMESTAMP,
     context = ?DEFAULT_CONTEXT(PartyID)
@@ -256,7 +261,7 @@
             is_blocked = ?BOOLEAN,
             identity = ?STRING,
             currency_symbolic_code = ?RUB,
-            resource = ?RESOURCE,
+            resource = {bank_card, ?BANK_CARD},
             external_id = ?STRING,
             status = {unauthorized, #fistfulstat_Unauthorized{}}
         },
@@ -267,7 +272,7 @@
             is_blocked = ?BOOLEAN,
             identity = ?STRING,
             currency_symbolic_code = ?RUB,
-            resource = ?RESOURCE_DIGITAL_WALLET,
+            resource = {digital_wallet, ?DIGITAL_WALLET},
             external_id = ?STRING,
             status = {unauthorized, #fistfulstat_Unauthorized{}}
         }
