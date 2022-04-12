@@ -192,10 +192,10 @@ tokenize_resource({digital_wallet, Resource}) ->
     % NOTE
     % Deliberately excluding `token` from hashing because at this point it contains random string
     % and would break conflict detection otherwise.
-    DigitalWallet = Resource#'ResourceDigitalWallet'.digital_wallet,
+    DigitalWallet = Resource#'fistful_base_ResourceDigitalWallet'.digital_wallet,
     wapi_backend_utils:tokenize_resource(
-        {digital_wallet, Resource#'ResourceDigitalWallet'{
-            digital_wallet = DigitalWallet#'DigitalWallet'{token = undefined}
+        {digital_wallet, Resource#'fistful_base_ResourceDigitalWallet'{
+            digital_wallet = DigitalWallet#'fistful_base_DigitalWallet'{token = undefined}
         }}
     );
 tokenize_resource(Value) ->

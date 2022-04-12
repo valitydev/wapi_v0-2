@@ -280,7 +280,7 @@ create_destination_fail_withdrawal_method_test(C) ->
     Destination = make_destination(C, bank_card),
     _ = create_destination_start_mocks(C, {throwing, #fistful_ForbiddenWithdrawalMethod{}}),
     ?assertEqual(
-        {error, {422, #{<<"message">> => <<"Resource type no longer allowed">>}}},
+        {error, {422, #{<<"message">> => <<"Resource type not allowed">>}}},
         create_destination_call_api(C, Destination)
     ).
 

@@ -157,7 +157,7 @@
 }).
 
 -define(RESOURCE_DIGITAL_WALLET,
-    {digital_wallet, #'ResourceDigitalWallet'{
+    {digital_wallet, #'fistful_base_ResourceDigitalWallet'{
         digital_wallet = ?DIGITAL_WALLET
     }}
 ).
