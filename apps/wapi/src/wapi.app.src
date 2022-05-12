@@ -11,7 +11,6 @@
         woody,
         lechiffre,
         bender_client,
-        wapi_woody_client,
         erl_health,
         damsel,
         identdocstore_proto,
@@ -29,9 +28,9 @@
         bouncer_client,
         token_keeper_client,
         thrift,
-        wapi_core,
         dmt_client,
-        tds_proto
+        tds_proto,
+        wapi_lib
     ]},
     {env, []}
 ]}.
