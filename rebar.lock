@@ -151,7 +151,7 @@
        {ref,"965c76b7343530cf940a808f497eef37d0a332e6"}},
   0},
  {<<"wapi_lib">>,
-  {git,"git@github.com:valitydev/wapi-lib.git",
+  {git,"https://github.com/valitydev/wapi-lib.git",
        {ref,"499e6dc0b3cbbc3897e601891e86d2fa89d0f285"}},
   0},
  {<<"woody">>,
