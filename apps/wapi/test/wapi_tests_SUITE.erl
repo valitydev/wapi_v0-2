@@ -17,6 +17,7 @@
 -export([init/1]).
 
 -export([
+    wrong_token_error/1,
     map_schema_violated_error_ok/1,
     map_wrong_body_error_ok/1
 ]).
@@ -45,6 +46,7 @@ all() ->
 groups() ->
     [
         {base, [], [
+            wrong_token_error,
             map_schema_violated_error_ok,
             map_wrong_body_error_ok
         ]}
@@ -86,6 +88,24 @@ end_per_testcase(_Name, C) ->
     ok.
 
 %%% Tests
+
+-spec wrong_token_error(config()) -> _.
+wrong_token_error(C) ->
+    Context = wapi_ct_helper:cfg(context, C),
+    Params = #{},
+    {Endpoint, PreparedParams, Opts0} = wapi_client_lib:make_request(Context, Params),
+    Url = swag_client_wallet_utils:get_url(Endpoint, "/wallet/v0/w2w/transfers"),
+    HeadersMap = maps:get(header, PreparedParams),
+    Headers = maps:to_list(HeadersMap#{<<"Authorization">> => <<"WrongToken">>}),
+    Body = <<"{}">>,
+    Opts = Opts0 ++ [with_body],
+    {ok, 401, _, _} = hackney:request(
+        post,
+        Url,
+        Headers,
+        Body,
+        Opts
+    ).
 
 -spec map_schema_violated_error_ok(config()) -> _.
 map_schema_violated_error_ok(C) ->

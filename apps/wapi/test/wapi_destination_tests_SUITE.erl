@@ -19,6 +19,8 @@
 
 -export([init/1]).
 
+-export([create_destination_forbidden_test/1]).
+-export([get_destination_fail_notfound_test/1]).
 -export([create_extension_destination_ok_test/1]).
 -export([create_extension_destination_fail_unknown_resource_test/1]).
 
@@ -48,6 +50,8 @@ all() ->
 groups() ->
     [
         {base, [], [
+            create_destination_forbidden_test,
+            get_destination_fail_notfound_test,
             create_extension_destination_ok_test,
             create_extension_destination_fail_unknown_resource_test
         ]}
@@ -112,6 +116,36 @@ end_mock_per_testcase(C) ->
     ok.
 
 %%% Tests
+
+-spec create_destination_forbidden_test(config()) -> _.
+create_destination_forbidden_test(C) ->
+    Destination = make_destination(C, bank_card),
+    PartyID = ?config(party, C),
+    _ = wapi_ct_helper_bouncer:mock_arbiter(wapi_ct_helper_bouncer:judge_always_forbidden(), C),
+    _ = wapi_ct_helper:mock_services(
+        [
+            {bender_thrift, fun('GenerateID', _) -> {ok, ?GENERATE_ID_RESULT} end},
+            {fistful_identity, fun
+                ('GetContext', _) -> {ok, ?DEFAULT_CONTEXT(PartyID)};
+                ('Get', _) -> {ok, ?IDENTITY(PartyID)}
+            end},
+            {fistful_destination, fun('Create', _) -> Destination end}
+        ],
+        C
+    ),
+    ?assertMatch(
+        {error, {401, #{}}},
+        create_destination_call_api(C, Destination)
+    ).
+
+-spec get_destination_fail_notfound_test(config()) -> _.
+get_destination_fail_notfound_test(C) ->
+    _ = get_destination_start_mocks(C, {throwing, #fistful_DestinationNotFound{}}),
+    _ = wapi_ct_helper_bouncer:mock_arbiter(wapi_ct_helper_bouncer:judge_always_forbidden(), C),
+    ?assertEqual(
+        {error, {404, #{}}},
+        get_destination_call_api(C)
+    ).
 
 -spec create_extension_destination_ok_test(config()) -> _.
 create_extension_destination_ok_test(C) ->
@@ -193,6 +227,13 @@ build_destination_spec(D, Resource) ->
         <<"resource">> => build_resource_spec(Resource)
     }.
 
+build_resource_spec({bank_card, R}) ->
+    #{
+        <<"type">> => <<"BankCardDestinationResource">>,
+        <<"token">> => wapi_crypto:create_resource_token(
+            {bank_card, R#'fistful_base_ResourceBankCard'.bank_card}, undefined
+        )
+    };
 build_resource_spec(
     {generic, #'fistful_base_ResourceGeneric'{generic = #'fistful_base_ResourceGenericData'{data = Data}}}
 ) ->
@@ -243,6 +284,22 @@ generate_destination(IdentityID, Resource, Context) ->
         context = Context
     }.
 
+generate_resource(bank_card) ->
+    {bank_card, #'fistful_base_ResourceBankCard'{
+        bank_card = #'fistful_base_BankCard'{
+            token = uniq(),
+            bin = <<"424242">>,
+            masked_pan = <<"4242">>,
+            bank_name = uniq(),
+            payment_system = #'fistful_base_PaymentSystemRef'{id = <<"foo">>},
+            issuer_country = rus,
+            card_type = debit,
+            exp_date = #'fistful_base_BankCardExpDate'{
+                month = 12,
+                year = 2200
+            }
+        }
+    }};
 generate_resource(generic) ->
     Data = jsx:encode(#{
         <<"type">> => ?GENERIC_RESOURCE_TYPE,
@@ -288,6 +345,29 @@ create_destination_call_api(C, Destination, Resource) ->
         fun swag_client_wallet_withdrawals_api:create_destination/3,
         #{
             body => build_destination_spec(Destination, Resource)
+        },
+        wapi_ct_helper:cfg(context, C)
+    ).
+
+get_destination_start_mocks(C, GetDestinationResult) ->
+    PartyID = ?config(party, C),
+    wapi_ct_helper:mock_services(
+        [
+            {fistful_destination, fun
+                ('GetContext', _) -> {ok, ?DEFAULT_CONTEXT(PartyID)};
+                ('Get', _) -> GetDestinationResult
+            end}
+        ],
+        C
+    ).
+
+get_destination_call_api(C) ->
+    call_api(
+        fun swag_client_wallet_withdrawals_api:get_destination/3,
+        #{
+            binding => #{
+                <<"destinationID">> => ?STRING
+            }
         },
         wapi_ct_helper:cfg(context, C)
     ).
