@@ -7,6 +7,8 @@
 -export([authorize_api_key/4]).
 -export([handle_request/4]).
 
+-type opts() :: swag_server_wallet:handler_opts(_).
+
 %% API
 
 -spec map_error(atom(), swag_server_wallet_validation:error()) -> swag_server_wallet:error_reason().
@@ -40,10 +42,10 @@ map_error_type(wrong_body) -> <<"WrongBody">>;
 map_error_type(wrong_array) -> <<"WrongArray">>.
 
 -spec authorize_api_key(
-    wapi_handler_utils:operation_id(),
-    wapi_auth:api_key(),
-    wapi_handler_utils:request_context(),
-    wapi_wallet_handler:handler_opts()
+    swag_server_wallet:operation_id(),
+    swag_server_wallet:api_key(),
+    swag_server_wallet:request_context(),
+    opts()
 ) ->
     Result :: false | {true, wapi_auth:preauth_context()}.
 authorize_api_key(OperationID, ApiKey, _Context, _HandlerOpts) ->
@@ -65,8 +67,8 @@ authorize_api_key(OperationID, ApiKey, _Context, _HandlerOpts) ->
 -spec handle_request(
     swag_server_wallet:operation_id(),
     wapi_wallet_handler:request_data(),
-    wapi_handler_utils:request_context(),
-    wapi_wallet_handler:handler_opts()
+    swag_server_wallet:request_context(),
+    opts()
 ) ->
     wapi_wallet_handler:request_result().
 handle_request(OperationID, Req, SwagContext, Opts) ->
@@ -137,7 +139,7 @@ make_token_context(#{cowboy_req := CowboyReq}) ->
     end.
 
 -spec create_handler_context(
-    wapi_handler_utils:operation_id(), wapi_handler_utils:request_context(), woody_context:ctx()
+    swag_server_wallet:operation_id(), swag_server_wallet:request_context(), woody_context:ctx()
 ) -> wapi_handler_utils:handler_context().
 create_handler_context(OpID, SwagContext, WoodyContext) ->
     #{
