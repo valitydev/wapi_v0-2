@@ -38,8 +38,8 @@ map_error_type(wrong_length) -> <<"WrongLength">>;
 map_error_type(wrong_size) -> <<"WrongSize">>;
 map_error_type(schema_violated) -> <<"SchemaViolated">>;
 map_error_type(wrong_type) -> <<"WrongType">>;
-map_error_type(wrong_body) -> <<"WrongBody">>;
-map_error_type(wrong_array) -> <<"WrongArray">>.
+map_error_type(wrong_format) -> <<"WrongFormat">>;
+map_error_type(wrong_body) -> <<"WrongBody">>.
 
 -spec authorize_api_key(
     swag_server_wallet:operation_id(),
