@@ -19,7 +19,8 @@
     woody_unexpected_test/1,
     woody_unavailable_test/1,
     woody_retry_test/1,
-    woody_unknown_test/1
+    woody_unknown_test/1,
+    woody_deadline_test/1
 ]).
 
 -define(BADRESP(Code), {error, {invalid_response_code, Code}}).
@@ -47,7 +48,8 @@ groups() ->
             woody_unexpected_test,
             woody_unavailable_test,
             woody_retry_test,
-            woody_unknown_test
+            woody_unknown_test,
+            woody_deadline_test
         ]}
     ].
 
@@ -151,6 +153,28 @@ woody_unknown_test(C) ->
         C
     ),
     ?BADRESP(504) = get_destination_call_api(C).
+
+-spec woody_deadline_test(config()) -> _.
+woody_deadline_test(C) ->
+    _ = wapi_ct_helper:mock_services(
+        [
+            {fistful_destination, fun
+                ('GetContext', _) -> timer:sleep(1000);
+                ('Get', _) -> timer:sleep(1000)
+            end}
+        ],
+        C
+    ),
+    Context = wapi_ct_helper:cfg(context, C),
+    ?BADRESP(504) = call_api(
+        fun swag_client_wallet_withdrawals_api:get_destination/3,
+        #{
+            binding => #{
+                <<"destinationID">> => ?STRING
+            }
+        },
+        Context#{deadline => "1ms"}
+    ).
 
 -spec call_api(function(), map(), wapi_client_lib:context()) -> {ok, term()} | {error, term()}.
 call_api(F, Params, Context) ->

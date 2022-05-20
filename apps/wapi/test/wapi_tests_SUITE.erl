@@ -4,6 +4,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include_lib("wapi_wallet_dummy_data.hrl").
+-include_lib("token_keeper_proto/include/tk_token_keeper_thrift.hrl").
 
 -export([all/0]).
 -export([groups/0]).
@@ -17,7 +18,8 @@
 -export([init/1]).
 
 -export([
-    wrong_token_error/1,
+    wrong_token_on_preauth_error/1,
+    wrong_token_on_auth_error/1,
     map_no_match_error_ok/1,
     map_not_in_range_error_ok/1,
     map_wrong_max_size_error_ok/1,
@@ -55,7 +57,8 @@ all() ->
 groups() ->
     [
         {base, [], [
-            wrong_token_error,
+            wrong_token_on_preauth_error,
+            wrong_token_on_auth_error,
             map_no_match_error_ok,
             map_not_in_range_error_ok,
             map_wrong_max_size_error_ok,
@@ -87,15 +90,12 @@ end_per_suite(C) ->
 init_per_group(Group, Config) when Group =:= base ->
     Party = genlib:bsuuid(),
     Config1 = [{party, Party} | Config],
-    GroupSup = wapi_ct_helper:start_mocked_service_sup(?MODULE),
-    _ = wapi_ct_helper_token_keeper:mock_user_session_token(Party, GroupSup),
-    [{group_test_sup, GroupSup}, {context, wapi_ct_helper:get_context(?API_TOKEN)} | Config1];
+    [{context, wapi_ct_helper:get_context(?API_TOKEN)} | Config1];
 init_per_group(_, Config) ->
     Config.
 
 -spec end_per_group(group_name(), config()) -> _.
-end_per_group(_Group, C) ->
-    _ = wapi_ct_helper:stop_mocked_service_sup(?config(group_test_sup, C)),
+end_per_group(_Group, _C) ->
     ok.
 
 -spec init_per_testcase(test_case_name(), config()) -> config().
@@ -112,8 +112,8 @@ end_per_testcase(_Name, C) ->
 
 %%% Tests
 
--spec wrong_token_error(config()) -> _.
-wrong_token_error(C) ->
+-spec wrong_token_on_preauth_error(config()) -> _.
+wrong_token_on_preauth_error(C) ->
     Context = wapi_ct_helper:cfg(context, C),
     Params = #{},
     {Endpoint, PreparedParams, Opts0} = wapi_client_lib:make_request(Context, Params),
@@ -129,6 +129,24 @@ wrong_token_error(C) ->
         Body,
         Opts
     ).
+
+-spec wrong_token_on_auth_error(config()) -> _.
+wrong_token_on_auth_error(C) ->
+    _ = wapi_ct_helper_token_keeper:mock_token(
+        fun('Authenticate', _) ->
+            {throwing, #token_keeper_InvalidToken{}}
+        end,
+        C
+    ),
+    Body = #{
+        <<"sender">> => ?STRING,
+        <<"receiver">> => ?STRING,
+        <<"body">> => #{
+            <<"amount">> => ?INTEGER,
+            <<"currency">> => ?RUB
+        }
+    },
+    {ok, 401, _, _} = make_request(jsx:encode(Body), C).
 
 -spec map_no_match_error_ok(config()) -> _.
 map_no_match_error_ok(C) ->
