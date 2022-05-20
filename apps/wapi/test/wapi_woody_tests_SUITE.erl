@@ -173,7 +173,7 @@ woody_deadline_test(C) ->
                 <<"destinationID">> => ?STRING
             }
         },
-        Context#{deadline => "1ms"}
+        Context#{deadline => <<"1ms">>}
     ).
 
 -spec call_api(function(), map(), wapi_client_lib:context()) -> {ok, term()} | {error, term()}.
