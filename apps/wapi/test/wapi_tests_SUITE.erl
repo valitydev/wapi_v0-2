@@ -278,7 +278,7 @@ make_mapped_error(Name, Type, Desc) ->
 %% by mocking highlevel handle_request_json function (implementation of handle_request_json and state record
 %% copied from swag_server_wallet_w2_w_handler).
 %% If generated code changes in unsupported way we can drop this hack
-%% and use spec rules from generated code and dont cover all test cases, only possible.
+%% and use specification directly (thus covering limited set of error mapping testcases though).
 
 mock_spec(Rules) ->
     meck:expect(
