@@ -40,7 +40,7 @@ init([]) ->
 get_logic_handler_info() ->
     {
         #{
-            wallet => {wapi_wallet_handler, #{}}
+            wallet => {wapi_handler, #{}}
         },
         []
     }.

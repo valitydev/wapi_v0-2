@@ -97,6 +97,7 @@ init_suite(Module, Config) ->
         start_app(scoper) ++
             start_app(woody) ++
             start_app({dmt_client, SupPid}) ++
+            start_app({wapi_lib, Config}) ++
             start_app({wapi, Config}),
     _ = wapi_ct_helper_bouncer:mock_client(SupPid),
     [{apps, lists:reverse(Apps1)}, {suite_test_sup, SupPid} | Config].
@@ -123,13 +124,25 @@ start_app({dmt_client = AppName, SupPid}) ->
     start_app_with(AppName, [
         {service_urls, #{'Repository' => maps:get(domain_config, Urls)}}
     ]);
+start_app({wapi_lib = AppName, _Config}) ->
+    start_app_with(AppName, [
+        {realm, <<"external">>},
+        {public_endpoint, <<"localhost:8080">>},
+        {bouncer_ruleset_id, ?TEST_RULESET_ID},
+        {signee, ?SIGNEE},
+        {events_fetch_limit, 32},
+        {auth_config, #{
+            metadata_mappings => #{
+                party_id => ?TK_META_PARTY_ID,
+                user_id => ?TK_META_USER_ID,
+                user_email => ?TK_META_USER_EMAIL
+            }
+        }}
+    ]);
 start_app({wapi = AppName, Config}) ->
     start_app_with(AppName, [
         {ip, ?WAPI_IP},
         {port, ?WAPI_PORT},
-        {realm, <<"external">>},
-        {public_endpoint, <<"localhost:8080">>},
-        {bouncer_ruleset_id, ?TEST_RULESET_ID},
         {access_conf, #{
             jwt => #{
                 keyset => #{
@@ -143,20 +156,11 @@ start_app({wapi = AppName, Config}) ->
                 }
             }
         }},
-        {signee, ?SIGNEE},
         {lechiffre_opts, #{
             encryption_source => {json, {file, get_keysource("jwk.publ.json", Config)}},
             decryption_sources => [
                 {json, {file, get_keysource("jwk.priv.json", Config)}}
             ]
-        }},
-        {events_fetch_limit, 32},
-        {auth_config, #{
-            metadata_mappings => #{
-                party_id => ?TK_META_PARTY_ID,
-                user_id => ?TK_META_USER_ID,
-                user_email => ?TK_META_USER_EMAIL
-            }
         }}
     ]);
 start_app(AppName) ->
@@ -218,11 +222,10 @@ start_woody_client(bender_thrift, Urls) ->
     start_app(bender_client, []);
 start_woody_client(wapi, Urls) ->
     ok = application:set_env(
-        wapi_woody_client,
+        wapi_lib,
         service_urls,
         Urls
-    ),
-    start_app(wapi_woody_client, []).
+    ).
 
 -spec mock_services_(_, _) -> _.
 % TODO need a better name
@@ -304,7 +307,7 @@ get_lifetime(YY, MM, DD) ->
         <<"days">> => DD
     }.
 
--spec create_auth_ctx(binary()) -> #{swagger_context => wapi_handler:swagger_context()}.
+-spec create_auth_ctx(binary()) -> #{swagger_context => wapi_wallet_handler:request_context()}.
 create_auth_ctx(PartyID) ->
     #{
         swagger_context => #{auth_context => {?STRING, PartyID, #{}}}
