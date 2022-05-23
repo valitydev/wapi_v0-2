@@ -275,7 +275,7 @@ make_mapped_error(Name, Type, Desc) ->
     genlib:to_binary(io_lib:format(Format, [Name, Type, Desc, Type, Name])).
 
 %% Dirty hack to mock private get_request_spec function of swag_server_wallet_w2_w_handler module
-%% by mocking highlevel handle_request_json function (implemeptetion of handle_request_json and state record
+%% by mocking highlevel handle_request_json function (implementation of handle_request_json and state record
 %% copied from swag_server_wallet_w2_w_handler).
 %% If generated code changes in unsupported way we can drop this hack
 %% and use spec rules from generated code and dont cover all test cases, only possible.
