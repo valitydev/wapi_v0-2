@@ -250,12 +250,7 @@ map_schema_violated_error_ok(C) ->
 
 -spec map_wrong_body_error_ok(config()) -> _.
 map_wrong_body_error_ok(C) ->
-    LongBinary =
-        <<
-            "LongBinaryLongBinaryLongBinaryLongBinaryLongBinaryLong\n"
-            "    BinaryLongBinaryLongBinaryLongBinaryLongBinaryLongBinary"
-        >>,
-    Body = <<"{", LongBinary/binary, LongBinary/binary, LongBinary/binary, LongBinary/binary, LongBinary/binary, "}">>,
+    Body = <<"🥲"/utf8>>,
     {ok, 400, _, Error} = make_request(Body, C),
     ExpectedError = make_mapped_error("W2WTransferParameters", "WrongBody", ", description: Invalid json"),
     ?assertEqual(ExpectedError, Error).
