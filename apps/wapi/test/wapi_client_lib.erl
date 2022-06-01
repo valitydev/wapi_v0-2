@@ -16,7 +16,7 @@
     timeout := integer(),
     event_handler := event_handler(),
     protocol := protocol(),
-    deadline := iolist() | undefined
+    deadline := binary() | undefined
 }.
 
 -export_type([context/0]).
@@ -163,7 +163,7 @@ headers(#{deadline := Deadline} = Context) ->
 x_request_id_header() ->
     {<<"X-Request-ID">>, integer_to_binary(rand:uniform(100000))}.
 
--spec x_request_deadline_header(iolist() | undefined, list()) -> list().
+-spec x_request_deadline_header(binary() | undefined, list()) -> list().
 x_request_deadline_header(undefined, Headers) ->
     Headers;
 x_request_deadline_header(Time, Headers) ->

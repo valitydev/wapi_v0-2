@@ -8,15 +8,8 @@
         stdlib,
         public_key,
         genlib,
-        woody,
         lechiffre,
-        bender_client,
-        wapi_woody_client,
         erl_health,
-        damsel,
-        identdocstore_proto,
-        fistful_reporter_proto,
-        file_storage_proto,
         swag_server_wallet,
         scoper,
         jose,
@@ -26,12 +19,7 @@
         cowboy_access_log,
         snowflake,
         uac,
-        bouncer_client,
-        token_keeper_client,
-        thrift,
-        wapi_core,
-        dmt_client,
-        tds_proto
+        wapi_lib
     ]},
     {env, []}
 ]}.

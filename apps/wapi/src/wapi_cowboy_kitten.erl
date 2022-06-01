@@ -1,4 +1,4 @@
--module(wapi_stream_h).
+-module(wapi_cowboy_kitten).
 
 -behaviour(cowboy_stream).
 
