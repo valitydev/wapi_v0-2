@@ -130,7 +130,7 @@ get_destination_fail_notfound_test(C) ->
     _ = wapi_ct_helper_bouncer:mock_arbiter(wapi_ct_helper_bouncer:judge_always_forbidden(), C),
     ?assertEqual(
         {error, {404, #{}}},
-        issue_create_destination_request(C)
+        issue_get_destination_request(C)
     ).
 
 -spec create_extension_destination_ok_test(config()) -> _.
