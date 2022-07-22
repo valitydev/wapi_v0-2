@@ -1,7 +1,7 @@
 -module(wapi_ct_helper).
 
 -include_lib("common_test/include/ct.hrl").
--include_lib("damsel/include/dmsl_domain_config_thrift.hrl").
+-include_lib("damsel/include/dmsl_domain_conf_thrift.hrl").
 -include_lib("wapi_wallet_dummy_data.hrl").
 -include_lib("wapi_token_keeper_data.hrl").
 
@@ -115,7 +115,7 @@ start_app({dmt_client = AppName, SupPid}) ->
     Urls = mock_services_(
         [
             {domain_config, fun
-                ('Checkout', _) -> #'Snapshot'{version = 1, domain = #{}};
+                ('Checkout', _) -> #domain_conf_Snapshot{version = 1, domain = #{}};
                 ('PullRange', _) -> #{}
             end}
         ],

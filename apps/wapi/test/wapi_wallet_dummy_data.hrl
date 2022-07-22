@@ -196,7 +196,7 @@
     ?IDENTITY(PartyID, ?DEFAULT_CONTEXT(PartyID))
 ).
 
--define(IDENTITY(PartyID, Context), #idnt_IdentityState{
+-define(IDENTITY(PartyID, Context), #identity_IdentityState{
     id = ?STRING,
     name = ?STRING,
     party_id = ?STRING,
