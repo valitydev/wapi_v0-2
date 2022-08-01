@@ -1,7 +1,6 @@
 -module(wapi_woody_tests_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
--include_lib("damsel/include/dmsl_domain_thrift.hrl").
 -include_lib("wapi_wallet_dummy_data.hrl").
 
 -export([all/0]).

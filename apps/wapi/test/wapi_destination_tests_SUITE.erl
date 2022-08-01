@@ -5,7 +5,11 @@
 
 -include_lib("wapi_wallet_dummy_data.hrl").
 
--include_lib("fistful_proto/include/ff_proto_destination_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_fistful_base_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_fistful_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_account_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_identity_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_destination_thrift.hrl").
 -include_lib("tds_proto/include/tds_storage_thrift.hrl").
 
 -export([all/0]).
@@ -24,9 +28,6 @@
 -export([create_extension_destination_ok_test/1]).
 -export([create_extension_destination_fail_unknown_resource_test/1]).
 
-% common-api is used since it is the domain used in production RN
-% TODO: change to wallet-api (or just omit since it is the default one) when new tokens will be a thing
--define(DOMAIN, <<"common-api">>).
 -define(GENERIC_RESOURCE_TYPE, <<"BankTransferGeneric">>).
 -define(GENERIC_RESOURCE_NAME, <<"GenericBankAccount">>).
 
@@ -216,14 +217,14 @@ call_api(F, Params, Context) ->
     wapi_client_lib:handle_response(Response).
 
 build_destination_spec(D, undefined) ->
-    build_destination_spec(D, D#dst_DestinationState.resource);
+    build_destination_spec(D, D#destination_DestinationState.resource);
 build_destination_spec(D, Resource) ->
     #{
-        <<"name">> => D#dst_DestinationState.name,
-        <<"identity">> => (D#dst_DestinationState.account)#account_Account.identity,
+        <<"name">> => D#destination_DestinationState.name,
+        <<"identity">> => (D#destination_DestinationState.account)#account_Account.identity,
         <<"currency">> =>
-            ((D#dst_DestinationState.account)#account_Account.currency)#'fistful_base_CurrencyRef'.symbolic_code,
-        <<"externalID">> => D#dst_DestinationState.external_id,
+            D#destination_DestinationState.account#account_Account.currency#fistful_base_CurrencyRef.symbolic_code,
+        <<"externalID">> => D#destination_DestinationState.external_id,
         <<"resource">> => build_resource_spec(Resource)
     }.
 
@@ -231,20 +232,20 @@ build_resource_spec({bank_card, R}) ->
     #{
         <<"type">> => <<"BankCardDestinationResource">>,
         <<"token">> => wapi_crypto:create_resource_token(
-            {bank_card, R#'fistful_base_ResourceBankCard'.bank_card}, undefined
+            {bank_card, R#fistful_base_ResourceBankCard.bank_card}, undefined
         )
     };
 build_resource_spec(
-    {generic, #'fistful_base_ResourceGeneric'{generic = #'fistful_base_ResourceGenericData'{data = Data}}}
+    {generic, #fistful_base_ResourceGeneric{generic = #fistful_base_ResourceGenericData{data = Data}}}
 ) ->
-    #'fistful_base_Content'{data = Params} = Data,
+    #fistful_base_Content{data = Params} = Data,
     jsx:decode(Params).
 
 uniq() ->
     genlib:bsuuid().
 
 generate_identity(PartyID) ->
-    #idnt_IdentityState{
+    #identity_IdentityState{
         id = ?STRING,
         name = uniq(),
         party_id = PartyID,
@@ -264,14 +265,14 @@ generate_context(PartyID) ->
 
 generate_destination(IdentityID, Resource, Context) ->
     ID = ?STRING,
-    #dst_DestinationState{
+    #destination_DestinationState{
         id = ID,
         name = uniq(),
-        status = {authorized, #dst_Authorized{}},
+        status = {authorized, #destination_Authorized{}},
         account = #account_Account{
             id = ID,
             identity = IdentityID,
-            currency = #'fistful_base_CurrencyRef'{
+            currency = #fistful_base_CurrencyRef{
                 symbolic_code = <<"RUB">>
             },
             accounter_account_id = 123
@@ -285,16 +286,16 @@ generate_destination(IdentityID, Resource, Context) ->
     }.
 
 generate_resource(bank_card) ->
-    {bank_card, #'fistful_base_ResourceBankCard'{
-        bank_card = #'fistful_base_BankCard'{
+    {bank_card, #fistful_base_ResourceBankCard{
+        bank_card = #fistful_base_BankCard{
             token = uniq(),
             bin = <<"424242">>,
             masked_pan = <<"4242">>,
             bank_name = uniq(),
-            payment_system = #'fistful_base_PaymentSystemRef'{id = <<"foo">>},
+            payment_system = #fistful_base_PaymentSystemRef{id = <<"foo">>},
             issuer_country = rus,
             card_type = debit,
-            exp_date = #'fistful_base_BankCardExpDate'{
+            exp_date = #fistful_base_BankCardExpDate{
                 month = 12,
                 year = 2200
             }
@@ -307,10 +308,10 @@ generate_resource(generic) ->
     }),
     ID = <<"https://some.link">>,
     Type = <<"application/schema-instance+json; schema=", ID/binary>>,
-    {generic, #'fistful_base_ResourceGeneric'{
-        generic = #'fistful_base_ResourceGenericData'{
-            data = #'fistful_base_Content'{type = Type, data = Data},
-            provider = #'fistful_base_PaymentServiceRef'{id = ?GENERIC_RESOURCE_TYPE}
+    {generic, #fistful_base_ResourceGeneric{
+        generic = #fistful_base_ResourceGenericData{
+            data = #fistful_base_Content{type = Type, data = Data},
+            provider = #fistful_base_PaymentServiceRef{id = ?GENERIC_RESOURCE_TYPE}
         }
     }}.
 
@@ -319,7 +320,7 @@ make_destination(C, ResourceType) ->
     Identity = generate_identity(PartyID),
     Resource = generate_resource(ResourceType),
     Context = generate_context(PartyID),
-    generate_destination(Identity#idnt_IdentityState.id, Resource, Context).
+    generate_destination(Identity#identity_IdentityState.id, Resource, Context).
 
 create_destination_start_mocks(C, CreateDestinationResult) ->
     PartyID = ?config(party, C),
