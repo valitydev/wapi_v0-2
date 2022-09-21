@@ -1,7 +1,7 @@
 -module(wapi_ct_helper).
 
 -include_lib("common_test/include/ct.hrl").
--include_lib("damsel/include/dmsl_domain_config_thrift.hrl").
+-include_lib("damsel/include/dmsl_domain_conf_thrift.hrl").
 -include_lib("wapi_wallet_dummy_data.hrl").
 -include_lib("wapi_token_keeper_data.hrl").
 
@@ -115,7 +115,7 @@ start_app({dmt_client = AppName, SupPid}) ->
     Urls = mock_services_(
         [
             {domain_config, fun
-                ('Checkout', _) -> #'Snapshot'{version = 1, domain = #{}};
+                ('Checkout', _) -> #'domain_conf_Snapshot'{version = 1, domain = #{}};
                 ('PullRange', _) -> #{}
             end}
         ],
@@ -281,7 +281,7 @@ mock_service_handler({ServiceName = bouncer, Fun}) ->
 mock_service_handler({ServiceName = org_management, Fun}) ->
     mock_service_handler(ServiceName, {orgmgmt_auth_context_provider_thrift, 'AuthContextProvider'}, Fun);
 mock_service_handler({ServiceName = domain_config, Fun}) ->
-    mock_service_handler(ServiceName, {dmsl_domain_config_thrift, 'Repository'}, Fun);
+    mock_service_handler(ServiceName, {dmsl_domain_conf_thrift, 'Repository'}, Fun);
 mock_service_handler({ServiceName, Fun}) ->
     mock_service_handler(ServiceName, wapi_woody_client:get_service_modname(ServiceName), Fun);
 mock_service_handler({ServiceName, WoodyService, Fun}) ->

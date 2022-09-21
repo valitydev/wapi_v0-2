@@ -2,7 +2,7 @@
 
 -include_lib("wapi_wallet_dummy_data.hrl").
 -include_lib("token_keeper_proto/include/tk_token_keeper_thrift.hrl").
--include_lib("token_keeper_proto/include/tk_context_thrift.hrl").
+-include_lib("token_keeper_proto/include/bouncer_ctx_thrift.hrl").
 -include_lib("wapi_token_keeper_data.hrl").
 
 -define(USER_EMAIL, <<"bla@bla.ru">>).
@@ -84,7 +84,7 @@ create_bouncer_context(AuthParams, UserParams) ->
 %%
 
 encode_context(Context) ->
-    #bctx_ContextFragment{
+    #ctx_ContextFragment{
         type = v1_thrift_binary,
         content = encode_context_content(Context)
     }.
