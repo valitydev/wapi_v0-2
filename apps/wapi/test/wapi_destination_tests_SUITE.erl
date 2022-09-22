@@ -5,7 +5,11 @@
 
 -include_lib("wapi_wallet_dummy_data.hrl").
 
--include_lib("fistful_proto/include/ff_proto_destination_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_destination_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_identity_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_fistful_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_fistful_base_thrift.hrl").
+-include_lib("fistful_proto/include/fistful_account_thrift.hrl").
 -include_lib("tds_proto/include/tds_storage_thrift.hrl").
 
 -export([all/0]).
@@ -183,14 +187,14 @@ call_api(F, Params, Context) ->
     wapi_client_lib:handle_response(Response).
 
 build_destination_spec(D, undefined) ->
-    build_destination_spec(D, D#dst_DestinationState.resource);
+    build_destination_spec(D, D#destination_DestinationState.resource);
 build_destination_spec(D, Resource) ->
+    Currency = (D#destination_DestinationState.account)#account_Account.currency,
     #{
-        <<"name">> => D#dst_DestinationState.name,
-        <<"identity">> => (D#dst_DestinationState.account)#account_Account.identity,
-        <<"currency">> =>
-            ((D#dst_DestinationState.account)#account_Account.currency)#'fistful_base_CurrencyRef'.symbolic_code,
-        <<"externalID">> => D#dst_DestinationState.external_id,
+        <<"name">> => D#destination_DestinationState.name,
+        <<"identity">> => (D#destination_DestinationState.account)#account_Account.identity,
+        <<"currency">> => Currency#'fistful_base_CurrencyRef'.symbolic_code,
+        <<"externalID">> => D#destination_DestinationState.external_id,
         <<"resource">> => build_resource_spec(Resource)
     }.
 
@@ -211,7 +215,7 @@ uniq() ->
     genlib:bsuuid().
 
 generate_identity(PartyID) ->
-    #idnt_IdentityState{
+    #identity_IdentityState{
         id = ?STRING,
         name = uniq(),
         party_id = PartyID,
@@ -231,10 +235,10 @@ generate_context(PartyID) ->
 
 generate_destination(IdentityID, Resource, Context) ->
     ID = ?STRING,
-    #dst_DestinationState{
+    #destination_DestinationState{
         id = ID,
         name = uniq(),
-        status = {authorized, #dst_Authorized{}},
+        status = {authorized, #destination_Authorized{}},
         account = #account_Account{
             id = ID,
             identity = IdentityID,
@@ -291,7 +295,7 @@ make_destination(C, ResourceType) ->
     Identity = generate_identity(PartyID),
     Resource = generate_resource(ResourceType),
     Context = generate_context(PartyID),
-    generate_destination(Identity#idnt_IdentityState.id, Resource, Context).
+    generate_destination(Identity#identity_IdentityState.id, Resource, Context).
 
 mock_create_destination(C, CreateDestinationResult) ->
     PartyID = ?config(party, C),

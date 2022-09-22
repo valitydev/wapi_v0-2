@@ -162,11 +162,11 @@
 
 -define(LAST_DIGITS(CardNumber), string:slice(CardNumber, 12)).
 
--define(DESTINATION_STATUS, {authorized, #dst_Authorized{}}).
+-define(DESTINATION_STATUS, {authorized, #destination_Authorized{}}).
 
 -define(DESTINATION(PartyID), ?DESTINATION(PartyID, ?RESOURCE_BANK_CARD)).
 
--define(DESTINATION(PartyID, Resource), #dst_DestinationState{
+-define(DESTINATION(PartyID, Resource), #destination_DestinationState{
     id = ?STRING,
     name = ?STRING,
     status = ?DESTINATION_STATUS,
@@ -192,7 +192,7 @@
     ?IDENTITY(PartyID, ?DEFAULT_CONTEXT(PartyID))
 ).
 
--define(IDENTITY(PartyID, Context), #idnt_IdentityState{
+-define(IDENTITY(PartyID, Context), #identity_IdentityState{
     id = ?STRING,
     name = ?STRING,
     party_id = ?STRING,
