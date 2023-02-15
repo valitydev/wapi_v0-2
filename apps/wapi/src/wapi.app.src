@@ -19,7 +19,8 @@
         cowboy_access_log,
         snowflake,
         uac,
-        wapi_lib
+        wapi_lib,
+        woody_user_identity
     ]},
     {env, []}
 ]}.
