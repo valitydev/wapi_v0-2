@@ -11,6 +11,11 @@
 
 %% API
 
+%% @WARNING Must be refactored in case of different classes of users using this API
+%% See CAPI capi_handler
+%% https://github.com/valitydev/capi-v2/blob/2de9367561a511f0dc1448881201de48e9004c54/apps/capi/src/capi_handler.erl#L62
+-define(REALM, <<"external">>).
+
 -spec map_error(atom(), swag_server_wallet_validation:error()) -> swag_server_wallet:error_reason().
 map_error(validation_error, Error) ->
     Type = map_error_type(maps:get(type, Error)),
@@ -85,11 +90,13 @@ handle_request(OperationID, Req, SwagContext, Opts) ->
             })
     end.
 
-process_request(OperationID, Req, SwagContext0, Opts, WoodyContext) ->
+process_request(OperationID, Req, SwagContext0, Opts, WoodyContext0) ->
     _ = logger:info("Processing request ~p", [OperationID]),
     try
-        SwagContext = do_authorize_api_key(SwagContext0, WoodyContext),
+        SwagContext = do_authorize_api_key(SwagContext0, WoodyContext0),
+        WoodyContext = put_user_identity(WoodyContext0, get_auth_context(SwagContext)),
         Context = create_handler_context(OperationID, SwagContext, WoodyContext),
+        ok = set_context_meta(Context),
         {ok, RequestState} = wapi_wallet_handler:prepare(OperationID, Req, Context, Opts),
         #{authorize := Authorize, process := Process} = RequestState,
         {ok, Resolution} = Authorize(),
@@ -116,6 +123,30 @@ create_woody_context(#{'X-Request-ID' := RequestID}) ->
     RpcID = #{trace_id := TraceID} = woody_context:new_rpc_id(genlib:to_binary(RequestID)),
     ok = scoper:add_meta(#{request_id => RequestID, trace_id => TraceID}),
     woody_context:new(RpcID, undefined, wapi_woody_client:get_service_deadline(wallet)).
+
+put_user_identity(WoodyContext, AuthContext) ->
+    woody_user_identity:put(collect_user_identity(AuthContext), WoodyContext).
+
+get_auth_context(#{auth_context := AuthContext}) ->
+    AuthContext.
+
+collect_user_identity(AuthContext) ->
+    genlib_map:compact(#{
+        id => wapi_auth:get_subject_id(AuthContext),
+        %%TODO: Store user realm in authdata meta and extract it here
+        realm => ?REALM,
+        email => wapi_auth:get_user_email(AuthContext)
+    }).
+
+-spec set_context_meta(wapi_handler_utils:handler_context()) -> ok.
+set_context_meta(Context) ->
+    AuthContext = wapi_handler_utils:get_auth_context(Context),
+    Meta = #{
+        metadata => #{
+            'user-identity' => collect_user_identity(AuthContext)
+        }
+    },
+    scoper:add_meta(Meta).
 
 attach_deadline(undefined, Context) ->
     Context;

@@ -152,12 +152,16 @@
   0},
  {<<"wapi_lib">>,
   {git,"https://github.com/valitydev/wapi-lib.git",
-       {ref,"14784513813ad71165eeabd98c98cd9f3e0c6255"}},
+       {ref,"e24e67d4ea9f34e0a6a8cb22d0f9551b41405e0f"}},
   0},
  {<<"woody">>,
   {git,"https://github.com/valitydev/woody_erlang.git",
        {ref,"68b191ed3655dbf40d0ba687f17f75ddd74e82da"}},
-  1}]}.
+  1},
+ {<<"woody_user_identity">>,
+  {git,"https://github.com/valitydev/woody_erlang_user_identity.git",
+       {ref,"a480762fea8d7c08f105fb39ca809482b6cb042e"}},
+  0}]}.
 [
 {pkg_hash,[
  {<<"cache">>, <<"B23A5FE7095445A88412A6E614C933377E0137B44FFED77C9B3FEF1A731A20B2">>},
