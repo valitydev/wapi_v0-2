@@ -152,7 +152,7 @@
   0},
  {<<"wapi_lib">>,
   {git,"https://github.com/valitydev/wapi-lib.git",
-       {ref,"e24e67d4ea9f34e0a6a8cb22d0f9551b41405e0f"}},
+       {ref,"046bcd972e0b7ff647e42dff4ef600579b3e0aa9"}},
   0},
  {<<"woody">>,
   {git,"https://github.com/valitydev/woody_erlang.git",
