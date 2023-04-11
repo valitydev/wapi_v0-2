@@ -1,74 +1,83 @@
 -module(wapi_handler).
 
-%% API
--export([handle_request/5]).
--export([throw_result/1]).
--export([respond_if_forbidden/2]).
+-behaviour(swag_server_wallet_logic_handler).
 
-%% Behaviour definition
+%% swag_server_wallet_logic_handler callbacks
+-export([map_error/2]).
+-export([authorize_api_key/4]).
+-export([handle_request/4]).
 
--type tag() :: wallet | payres.
-
--type operation_id() :: swag_server_wallet:operation_id().
-
--type swagger_context() :: swag_server_wallet:request_context().
-
--type context() :: #{
-    operation_id := operation_id(),
-    woody_context := woody_context:ctx(),
-    swagger_context := swagger_context()
-}.
-
--type opts() ::
-    swag_server_wallet:handler_opts(_).
-
--type req_data() :: #{atom() | binary() => term()}.
--type status_code() :: 200..599.
--type headers() :: cowboy:http_headers().
--type response_data() :: map() | [map()] | undefined.
--type response() :: {status_code(), headers(), response_data()}.
--type request_result() :: {ok | error, response()}.
-
--callback prepare(
-    OperationID :: operation_id(),
-    Req :: req_data(),
-    Context :: context(),
-    Opts :: opts()
-) -> {ok, request_state()} | no_return().
-
--type throw(_T) :: no_return().
-
--type request_state() :: #{
-    authorize := fun(() -> {ok, wapi_auth:resolution()} | throw(response())),
-    process := fun(() -> {ok, response()} | throw(request_result()))
-}.
-
--export_type([request_state/0]).
--export_type([response/0]).
--export_type([operation_id/0]).
--export_type([swagger_context/0]).
--export_type([context/0]).
--export_type([opts/0]).
--export_type([req_data/0]).
--export_type([status_code/0]).
--export_type([response_data/0]).
--export_type([headers/0]).
--export_type([request_result/0]).
+-type opts() :: swag_server_wallet:handler_opts(_).
 
 %% API
 
--define(REQUEST_RESULT, wapi_req_result).
--define(APP, wapi).
+-spec map_error(atom(), swag_server_wallet_validation:error()) -> swag_server_wallet:error_reason().
+map_error(validation_error, Error) ->
+    Type = map_error_type(maps:get(type, Error)),
+    Name = genlib:to_binary(maps:get(param_name, Error)),
+    Message =
+        case maps:get(description, Error, undefined) of
+            undefined ->
+                <<"Request parameter: ", Name/binary, ", error type: ", Type/binary>>;
+            Description ->
+                DescriptionBin = genlib:to_binary(Description),
+                <<"Request parameter: ", Name/binary, ", error type: ", Type/binary, ", description: ",
+                    DescriptionBin/binary>>
+        end,
+    jsx:encode(#{
+        <<"errorType">> => Type,
+        <<"name">> => Name,
+        <<"description">> => Message
+    }).
 
--spec handle_request(tag(), operation_id(), req_data(), swagger_context(), opts()) -> request_result().
-handle_request(Tag, OperationID, Req, SwagContext, Opts) ->
+-spec map_error_type(swag_server_wallet_validation:error_type()) -> binary().
+map_error_type(no_match) -> <<"NoMatch">>;
+map_error_type(not_found) -> <<"NotFound">>;
+map_error_type(not_in_range) -> <<"NotInRange">>;
+map_error_type(wrong_length) -> <<"WrongLength">>;
+map_error_type(wrong_size) -> <<"WrongSize">>;
+map_error_type(schema_violated) -> <<"SchemaViolated">>;
+map_error_type(wrong_type) -> <<"WrongType">>;
+map_error_type(wrong_format) -> <<"WrongFormat">>;
+map_error_type(wrong_body) -> <<"WrongBody">>.
+
+-spec authorize_api_key(
+    swag_server_wallet:operation_id(),
+    swag_server_wallet:api_key(),
+    swag_server_wallet:request_context(),
+    opts()
+) ->
+    Result :: false | {true, wapi_auth:preauth_context()}.
+authorize_api_key(OperationID, ApiKey, _Context, _HandlerOpts) ->
+    %% Since we require the request id field to create a woody context for our trip to token_keeper
+    %% it seems it is no longer possible to perform any authorization in this method.
+    %% To gain this ability back be would need to rewrite the swagger generator to perform its
+    %% request validation checks before this stage.
+    %% But since a decent chunk of authorization logic is already defined in the handler function
+    %% it is probably easier to move it there in its entirety.
+    ok = scoper:add_scope('swag.server', #{api => wallet, operation_id => OperationID}),
+    case wapi_auth:preauthorize_api_key(ApiKey) of
+        {ok, Context} ->
+            {true, Context};
+        {error, Error} ->
+            _ = logger:info("API Key preauthorization failed for ~p due to ~p", [OperationID, Error]),
+            false
+    end.
+
+-spec handle_request(
+    swag_server_wallet:operation_id(),
+    wapi_wallet_handler:request_data(),
+    swag_server_wallet:request_context(),
+    opts()
+) ->
+    wapi_wallet_handler:request_result().
+handle_request(OperationID, Req, SwagContext, Opts) ->
     #{'X-Request-Deadline' := Header} = Req,
     case wapi_utils:parse_deadline(Header) of
         {ok, Deadline} ->
-            WoodyContext = attach_deadline(Deadline, create_woody_context(Tag, Req)),
-            process_request(Tag, OperationID, Req, SwagContext, Opts, WoodyContext);
+            WoodyContext = attach_deadline(Deadline, create_woody_context(Req)),
+            process_request(OperationID, Req, SwagContext, Opts, WoodyContext);
         _ ->
-            _ = logger:warning("Operation ~p failed due to invalid deadline header ~p", [OperationID, Header]),
             wapi_handler_utils:reply_ok(400, #{
                 <<"errorType">> => <<"SchemaViolated">>,
                 <<"name">> => <<"X-Request-Deadline">>,
@@ -76,13 +85,12 @@ handle_request(Tag, OperationID, Req, SwagContext, Opts) ->
             })
     end.
 
-process_request(Tag, OperationID, Req, SwagContext0, Opts, WoodyContext) ->
+process_request(OperationID, Req, SwagContext0, Opts, WoodyContext) ->
     _ = logger:info("Processing request ~p", [OperationID]),
     try
         SwagContext = do_authorize_api_key(SwagContext0, WoodyContext),
         Context = create_handler_context(OperationID, SwagContext, WoodyContext),
-        Handler = get_handler(Tag),
-        {ok, RequestState} = Handler:prepare(OperationID, Req, Context, Opts),
+        {ok, RequestState} = wapi_wallet_handler:prepare(OperationID, Req, Context, Opts),
         #{authorize := Authorize, process := Process} = RequestState,
         {ok, Resolution} = Authorize(),
         case Resolution of
@@ -91,61 +99,28 @@ process_request(Tag, OperationID, Req, SwagContext0, Opts, WoodyContext) ->
                 Process();
             forbidden ->
                 _ = logger:info("Authorization failed"),
-                wapi_handler_utils:reply_ok(401)
+                wapi_handler_utils:reply_ok(401);
+            Result ->
+                Result
         end
     catch
         throw:{token_auth_failed, Reason} ->
             _ = logger:info("API Key authorization failed for ~p due to ~p", [OperationID, Reason]),
             wapi_handler_utils:reply_ok(401);
-        throw:{?REQUEST_RESULT, Result} ->
-            Result;
         error:{woody_error, {Source, Class, Details}} ->
             process_woody_error(Source, Class, Details)
     end.
 
--spec throw_result(request_result()) -> no_return().
-throw_result(Res) ->
-    erlang:throw({?REQUEST_RESULT, Res}).
-
--spec respond_if_forbidden(Resolution, request_result()) -> Resolution | throw(request_result()) when
-    Resolution :: wapi_auth:resolution().
-respond_if_forbidden(forbidden, Response) ->
-    throw_result(Response);
-respond_if_forbidden(allowed, _Response) ->
-    allowed.
-
-get_handler(wallet) -> wapi_wallet_handler;
-get_handler(payres) -> wapi_payres_handler.
-
--spec create_woody_context(tag(), req_data()) -> woody_context:ctx().
-create_woody_context(Tag, #{'X-Request-ID' := RequestID}) ->
+-spec create_woody_context(wapi_wallet_handler:request_data()) -> woody_context:ctx().
+create_woody_context(#{'X-Request-ID' := RequestID}) ->
     RpcID = #{trace_id := TraceID} = woody_context:new_rpc_id(genlib:to_binary(RequestID)),
     ok = scoper:add_meta(#{request_id => RequestID, trace_id => TraceID}),
-    _ = logger:debug("Created TraceID for the request"),
-    woody_context:new(RpcID, undefined, wapi_woody_client:get_service_deadline(Tag)).
+    woody_context:new(RpcID, undefined, wapi_woody_client:get_service_deadline(wallet)).
 
 attach_deadline(undefined, Context) ->
     Context;
 attach_deadline(Deadline, Context) ->
     woody_context:set_deadline(Deadline, Context).
-
--spec create_handler_context(operation_id(), swagger_context(), woody_context:ctx()) -> context().
-create_handler_context(OpID, SwagContext, WoodyContext) ->
-    #{
-        operation_id => OpID,
-        woody_context => WoodyContext,
-        swagger_context => SwagContext
-    }.
-
-process_woody_error(_Source, result_unexpected, _Details) ->
-    wapi_handler_utils:reply_error(500);
-process_woody_error(_Source, resource_unavailable, _Details) ->
-    % Return an 504 since it is unknown if state of the system has been altered
-    % @TODO Implement some sort of tagging for operations that mutate the state,
-    % so we can still return 503s for those that don't
-    wapi_handler_utils:reply_error(504);
-process_woody_error(_Source, result_unknown, _Details) ->
-    wapi_handler_utils:reply_error(504).
 
 do_authorize_api_key(SwagContext = #{auth_context := PreAuthContext}, WoodyContext) ->
     case wapi_auth:authorize_api_key(PreAuthContext, make_token_context(SwagContext), WoodyContext) of
@@ -162,3 +137,25 @@ make_token_context(#{cowboy_req := CowboyReq}) ->
         undefined ->
             #{}
     end.
+
+-spec create_handler_context(
+    swag_server_wallet:operation_id(), swag_server_wallet:request_context(), woody_context:ctx()
+) -> wapi_handler_utils:handler_context().
+create_handler_context(OpID, SwagContext, WoodyContext) ->
+    #{
+        operation_id => OpID,
+        woody_context => WoodyContext,
+        swagger_context => SwagContext,
+        swag_server_get_schema_fun => fun swag_server_wallet_schema:get/0,
+        swag_server_get_operation_fun => fun(OperationID) -> swag_server_wallet_router:get_operation(OperationID) end
+    }.
+
+process_woody_error(_Source, result_unexpected, _Details) ->
+    wapi_handler_utils:reply_error(500);
+process_woody_error(_Source, resource_unavailable, _Details) ->
+    % Return an 504 since it is unknown if state of the system has been altered
+    % @TODO Implement some sort of tagging for operations that mutate the state,
+    % so we can still return 503s for those that don't
+    wapi_handler_utils:reply_error(504);
+process_woody_error(_Source, result_unknown, _Details) ->
+    wapi_handler_utils:reply_error(504).

@@ -1,4 +1,4 @@
--module(wapi_stream_h).
+-module(wapi_cowboy_kitten).
 
 -behaviour(cowboy_stream).
 
@@ -63,11 +63,8 @@ handle_response({response, Code, Headers, Body}) when Code >= 500 ->
 handle_response({response, _, _, _} = Resp) ->
     Resp.
 
-%% cowboy_req:reply/4 has a faulty spec in case of response body fun.
-%-dialyzer({[no_contracts, no_fail_call], send_oops_resp/4}).
-
 send_oops_resp(Code, Headers, undefined, Req) ->
-    {Code, Headers, Req};
+    {response, Code, Headers, Req};
 send_oops_resp(Code, Headers0, File, _) ->
     FileSize = filelib:file_size(File),
     Headers = maps:merge(Headers0, #{

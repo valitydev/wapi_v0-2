@@ -60,7 +60,7 @@ get_cowboy_config(AdditionalRoutes, LogicHandlers, SwaggerHandlerOpts) ->
         ],
         stream_handlers => [
             cowboy_access_log_h,
-            wapi_stream_h,
+            wapi_cowboy_kitten,
             cowboy_stream_h
         ]
     },

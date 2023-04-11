@@ -1,7 +1,7 @@
 -module(wapi_ct_helper).
 
 -include_lib("common_test/include/ct.hrl").
--include_lib("damsel/include/dmsl_domain_config_thrift.hrl").
+-include_lib("damsel/include/dmsl_domain_conf_thrift.hrl").
 -include_lib("wapi_wallet_dummy_data.hrl").
 -include_lib("wapi_token_keeper_data.hrl").
 
@@ -29,7 +29,6 @@
 -define(WAPI_PORT, 8080).
 -define(WAPI_HOST_NAME, "localhost").
 -define(WAPI_URL, ?WAPI_HOST_NAME ++ ":" ++ integer_to_list(?WAPI_PORT)).
--define(DOMAIN, <<"wallet-api">>).
 
 %%
 -type config() :: [{atom(), any()}].
@@ -97,11 +96,13 @@ init_suite(Module, Config) ->
     Apps1 =
         start_app(scoper) ++
             start_app(woody) ++
+            start_app({dmt_client, SupPid}) ++
+            start_app({wapi_lib, Config}) ++
             start_app({wapi, Config}),
     _ = wapi_ct_helper_bouncer:mock_client(SupPid),
     [{apps, lists:reverse(Apps1)}, {suite_test_sup, SupPid} | Config].
 
--spec start_app(app_name() | {app_name(), config()}) -> [app_name()].
+-spec start_app(app_name() | {app_name(), _Config}) -> [app_name()].
 start_app(scoper = AppName) ->
     start_app_with(AppName, [
         {storage, scoper_storage_logger}
@@ -110,13 +111,38 @@ start_app(woody = AppName) ->
     start_app_with(AppName, [
         {acceptors_pool_size, 4}
     ]);
+start_app({dmt_client = AppName, SupPid}) ->
+    Urls = mock_services_(
+        [
+            {domain_config, fun
+                ('Checkout', _) -> #domain_conf_Snapshot{version = 1, domain = #{}};
+                ('PullRange', _) -> #{}
+            end}
+        ],
+        SupPid
+    ),
+    start_app_with(AppName, [
+        {service_urls, #{'Repository' => maps:get(domain_config, Urls)}}
+    ]);
+start_app({wapi_lib = AppName, _Config}) ->
+    start_app_with(AppName, [
+        {realm, <<"external">>},
+        {public_endpoint, <<"localhost:8080">>},
+        {bouncer_ruleset_id, ?TEST_RULESET_ID},
+        {signee, ?SIGNEE},
+        {events_fetch_limit, 32},
+        {auth_config, #{
+            metadata_mappings => #{
+                party_id => ?TK_META_PARTY_ID,
+                user_id => ?TK_META_USER_ID,
+                user_email => ?TK_META_USER_EMAIL
+            }
+        }}
+    ]);
 start_app({wapi = AppName, Config}) ->
     start_app_with(AppName, [
         {ip, ?WAPI_IP},
         {port, ?WAPI_PORT},
-        {realm, <<"external">>},
-        {public_endpoint, <<"localhost:8080">>},
-        {bouncer_ruleset_id, ?TEST_RULESET_ID},
         {access_conf, #{
             jwt => #{
                 keyset => #{
@@ -130,20 +156,11 @@ start_app({wapi = AppName, Config}) ->
                 }
             }
         }},
-        {signee, ?SIGNEE},
         {lechiffre_opts, #{
             encryption_source => {json, {file, get_keysource("jwk.publ.json", Config)}},
             decryption_sources => [
                 {json, {file, get_keysource("jwk.priv.json", Config)}}
             ]
-        }},
-        {events_fetch_limit, 32},
-        {auth_config, #{
-            metadata_mappings => #{
-                party_id => ?TK_META_PARTY_ID,
-                user_id => ?TK_META_USER_ID,
-                user_email => ?TK_META_USER_EMAIL
-            }
         }}
     ]);
 start_app(AppName) ->
@@ -205,11 +222,10 @@ start_woody_client(bender_thrift, Urls) ->
     start_app(bender_client, []);
 start_woody_client(wapi, Urls) ->
     ok = application:set_env(
-        wapi_woody_client,
+        wapi_lib,
         service_urls,
         Urls
-    ),
-    start_app(wapi_woody_client, []).
+    ).
 
 -spec mock_services_(_, _) -> _.
 % TODO need a better name
@@ -240,6 +256,8 @@ mock_services_(Services, SupPid) when is_pid(SupPid) ->
                     Acc#{ServiceName => make_url(ServiceName, Port)};
                 bender_thrift ->
                     Acc#{ServiceName => #{'Bender' => make_url(ServiceName, Port)}};
+                domain_config ->
+                    Acc#{ServiceName => make_url(ServiceName, Port)};
                 _ ->
                     WapiWoodyClient = maps:get(wapi, Acc, #{}),
                     Acc#{wapi => WapiWoodyClient#{ServiceName => make_url(ServiceName, Port)}}
@@ -255,13 +273,15 @@ get_service_name({ServiceName, _WoodyService, _Fun}) ->
     ServiceName.
 
 mock_service_handler({ServiceName = bender_thrift, Fun}) ->
-    mock_service_handler(ServiceName, {bender_thrift, 'Bender'}, Fun);
+    mock_service_handler(ServiceName, {bender_bender_thrift, 'Bender'}, Fun);
 mock_service_handler({ServiceName = token_authenticator, Fun}) ->
     mock_service_handler(ServiceName, {tk_token_keeper_thrift, 'TokenAuthenticator'}, Fun);
 mock_service_handler({ServiceName = bouncer, Fun}) ->
-    mock_service_handler(ServiceName, {bouncer_decisions_thrift, 'Arbiter'}, Fun);
+    mock_service_handler(ServiceName, {bouncer_decision_thrift, 'Arbiter'}, Fun);
 mock_service_handler({ServiceName = org_management, Fun}) ->
-    mock_service_handler(ServiceName, {orgmgmt_auth_context_provider_thrift, 'AuthContextProvider'}, Fun);
+    mock_service_handler(ServiceName, {orgmgmt_authctx_provider_thrift, 'AuthContextProvider'}, Fun);
+mock_service_handler({ServiceName = domain_config, Fun}) ->
+    mock_service_handler(ServiceName, {dmsl_domain_conf_thrift, 'Repository'}, Fun);
 mock_service_handler({ServiceName, Fun}) ->
     mock_service_handler(ServiceName, wapi_woody_client:get_service_modname(ServiceName), Fun);
 mock_service_handler({ServiceName, WoodyService, Fun}) ->
@@ -287,7 +307,7 @@ get_lifetime(YY, MM, DD) ->
         <<"days">> => DD
     }.
 
--spec create_auth_ctx(binary()) -> #{swagger_context => wapi_handler:swagger_context()}.
+-spec create_auth_ctx(binary()) -> #{swagger_context => wapi_wallet_handler:request_context()}.
 create_auth_ctx(PartyID) ->
     #{
         swagger_context => #{auth_context => {?STRING, PartyID, #{}}}
