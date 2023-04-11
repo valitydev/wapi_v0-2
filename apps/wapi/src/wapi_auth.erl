@@ -113,3 +113,45 @@ get_metadata_mapped_key(Key) ->
 get_meta_mappings() ->
     AuthConfig = genlib_app:env(?APP, auth_config),
     maps:get(metadata_mappings, AuthConfig).
+
+get_ip_address(SwagContext) ->
+    Request = maps:get(cowboy_req, SwagContext, #{}),
+    case get_ip_address_from_request(Request) of
+        {ok, IPAddress} ->
+            IPAddress;
+        {error, _Error} ->
+            %% Ignore error, add logging if needed
+            undefined
+    end.
+
+get_ip_address_from_request(Request) ->
+    IPAddressHeader = genlib_app:env(capi, ip_address_header, <<"x-forwarded-for">>),
+    case Request of
+        #{headers := #{IPAddressHeader := IPAddress}} ->
+            parse_header_ip_address(IPAddress);
+        #{peer := {IPAddress, _Port}} ->
+            {ok, IPAddress};
+        _ ->
+            {error, no_req_in_swag_context}
+    end.
+
+parse_header_ip_address(IPAddress0) ->
+    IPAddress1 = erlang:binary_to_list(IPAddress0),
+    IPs = [L || L <- string:lexemes(IPAddress1, ", ")],
+    Valid = lists:all(fun check_ip/1, IPs),
+    case IPs of
+        [ClientIP | _Proxies] when Valid ->
+            inet:parse_strict_address(ClientIP);
+        _ ->
+            % empty or malformed value
+            {error, malformed}
+    end.
+
+check_ip(IP) ->
+    case inet:parse_strict_address(IP) of
+        {ok, _} ->
+            true;
+        _Error ->
+            % unparseable ip address
+            false
+    end.
