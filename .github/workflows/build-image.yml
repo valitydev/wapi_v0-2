@@ -19,3 +19,5 @@ jobs:
         with:
           registry-username: ${{ github.actor }}
           registry-access-token: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      ImageOS: ubuntu20

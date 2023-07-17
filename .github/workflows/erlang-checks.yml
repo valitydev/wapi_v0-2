@@ -12,6 +12,8 @@ jobs:
   setup:
     name: Load .env
     runs-on: ubuntu-20.04
+    env:
+      ImageOS: ubuntu20
     outputs:
       otp-version: ${{ steps.otp-version.outputs.version }}
       rebar-version: ${{ steps.rebar-version.outputs.version }}
