@@ -308,7 +308,10 @@ mock_create_destination(C, CreateDestinationResult) ->
                 ('GetContext', _) -> {ok, ?DEFAULT_CONTEXT(PartyID)};
                 ('Get', _) -> {ok, ?IDENTITY(PartyID)}
             end},
-            {fistful_destination, fun('Create', _) -> CreateDestinationResult end}
+            {fistful_destination, fun
+                ('Create', _) -> CreateDestinationResult;
+                ('Get', _) -> {throwing, #fistful_DestinationNotFound{}}
+            end}
         ],
         C
     ).
