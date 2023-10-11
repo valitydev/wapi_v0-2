@@ -137,7 +137,8 @@ start_app({wapi_lib = AppName, _Config}) ->
                 user_id => ?TK_META_USER_ID,
                 user_email => ?TK_META_USER_EMAIL
             }
-        }}
+        }},
+        {legacy_context_namespaces, [<<"com.rbkmoney.wapi">>]}
     ]);
 start_app({wapi = AppName, Config}) ->
     start_app_with(AppName, [
