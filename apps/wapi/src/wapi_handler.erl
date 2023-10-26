@@ -1,5 +1,8 @@
 -module(wapi_handler).
 
+-include_lib("opentelemetry_api/include/otel_tracer.hrl").
+-include_lib("opentelemetry_api/include/opentelemetry.hrl").
+
 -behaviour(swag_server_wallet_logic_handler).
 
 %% swag_server_wallet_logic_handler callbacks
@@ -53,17 +56,17 @@ map_error_type(wrong_body) -> <<"WrongBody">>.
     opts()
 ) ->
     Result :: false | {true, wapi_auth:preauth_context()}.
-authorize_api_key(OperationID, ApiKey, _Context, _HandlerOpts) ->
+authorize_api_key(OperationID, ApiKey, Context, _HandlerOpts) ->
+    ok = set_otel_context(Context),
     %% Since we require the request id field to create a woody context for our trip to token_keeper
     %% it seems it is no longer possible to perform any authorization in this method.
     %% To gain this ability back be would need to rewrite the swagger generator to perform its
     %% request validation checks before this stage.
     %% But since a decent chunk of authorization logic is already defined in the handler function
     %% it is probably easier to move it there in its entirety.
-    ok = scoper:add_scope('swag.server', #{api => wallet, operation_id => OperationID}),
     case wapi_auth:preauthorize_api_key(ApiKey) of
-        {ok, Context} ->
-            {true, Context};
+        {ok, Context1} ->
+            {true, Context1};
         {error, Error} ->
             _ = logger:info("API Key preauthorization failed for ~p due to ~p", [OperationID, Error]),
             false
@@ -77,6 +80,14 @@ authorize_api_key(OperationID, ApiKey, _Context, _HandlerOpts) ->
 ) ->
     wapi_wallet_handler:request_result().
 handle_request(OperationID, Req, SwagContext, Opts) ->
+    SpanName = <<"server ", (atom_to_binary(OperationID))/binary>>,
+    ?with_span(SpanName, #{kind => ?SPAN_KIND_SERVER}, fun(_SpanCtx) ->
+        scoper:scope('swag.server', #{api => wallet, operation_id => OperationID}, fun() ->
+            handle_request_(OperationID, Req, SwagContext, Opts)
+        end)
+    end).
+
+handle_request_(OperationID, Req, SwagContext, Opts) ->
     #{'X-Request-Deadline' := Header} = Req,
     case wapi_utils:parse_deadline(Header) of
         {ok, Deadline} ->
@@ -190,3 +201,11 @@ process_woody_error(_Source, resource_unavailable, _Details) ->
     wapi_handler_utils:reply_error(504);
 process_woody_error(_Source, result_unknown, _Details) ->
     wapi_handler_utils:reply_error(504).
+
+set_otel_context(#{cowboy_req := Req}) ->
+    Headers = cowboy_req:headers(Req),
+    %% Implicitly puts OTEL context into process dictionary.
+    %% Since cowboy does not reuse process for other requests, we don't care
+    %% about cleaning it up.
+    _OtelCtx = otel_propagator_text_map:extract(maps:to_list(Headers)),
+    ok.
