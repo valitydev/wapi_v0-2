@@ -35,7 +35,7 @@ endif
 
 DOCKER_WC_OPTIONS := -v $(PWD):$(PWD) --workdir $(PWD)
 DOCKER_WC_EXTRA_OPTIONS ?= --rm
-DOCKER_RUN = $(DOCKER) run -t $(DOCKER_WC_OPTIONS) $(DOCKER_WC_EXTRA_OPTIONS)
+DOCKER_RUN = $(DOCKER) run --rm -v ~/.ssh:/root/.ssh:ro -t $(DOCKER_WC_OPTIONS) $(DOCKER_WC_EXTRA_OPTIONS)
 
 # Utility tasks
 
